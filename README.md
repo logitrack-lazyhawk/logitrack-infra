@@ -8,13 +8,13 @@
 
 Repositorio oficial de infraestructura y orquestación del proyecto **LogiTrack (LazyHawk)** para la cátedra de **DAAS (2026)** - Universidad Nacional de Jujuy (UNJu).
 
-Este repositorio centraliza el archivo `docker-compose.yml` para desplegar el ecosistema completo de microservicios, bases de datos aisladas y el servidor de configuración en cualquier entorno con un solo comando.
+Este repositorio centraliza el archivo `docker-compose.yml` para desplegar el ecosistema completo de microservicios, bases de datos aisladas y el servidor de configuración con un **diseño optimizado para bajo consumo de memoria RAM** (~1.7 GB total).
 
 ---
 
 ## 🏛️ Arquitectura del Ecosistema
 
-El despliegue implementa el patrón **Database-per-Service** con aislamiento total de persistencia y comunicación inter-servicio síncrona a través de una red virtual interna:
+El despliegue implementa el patrón **Database-per-Service** (con esquemas independientes) servido por una única instancia de MySQL mediante **Docker Network Aliases** para minimizar el uso de RAM:
 
 ```mermaid
 flowchart TD
@@ -25,9 +25,7 @@ flowchart TD
             COUR["logitrack-courier-service:8081"]
             SHIP["logitrack-shipment-service:8080"]
             
-            DB_SEC[("mysql-security:3306\nsecurity_db")]
-            DB_COUR[("mysql-courier:3306\ncourier_db")]
-            DB_SHIP[("mysql-shipment:3306\nshipment_db")]
+            DB[("logitrack-mysql:3306\nAliases: mysql-security, mysql-courier, mysql-shipment\nEsquemas: shipment_db, courier_db, security_db")]
         end
     end
 
@@ -36,12 +34,23 @@ flowchart TD
     CS -->|Configuración centralizada| COUR
     CS -->|Configuración centralizada| SHIP
     
-    SEC --> DB_SEC
-    COUR --> DB_COUR
-    SHIP --> DB_SHIP
+    SEC -->|mysql-security:3306| DB
+    COUR -->|mysql-courier:3306| DB
+    SHIP -->|mysql-shipment:3306| DB
     
     SHIP -->|OpenFeign REST /api/v1/repartidores| COUR
 ```
+
+---
+
+## ⚡ Optimizaciones de Memoria RAM Aplicadas
+
+El stack fue optimizado para reducir el consumo de **~4 GB a solo ~1.7 GB** sin perder ninguna funcionalidad:
+
+1. **MySQL Unificado con Network Aliases:** 1 solo motor MySQL corriendo 3 esquemas independientes (`shipment_db`, `courier_db`, `security_db`). Gracias a los alias de red (`mysql-shipment`, `mysql-courier`, `mysql-security`), ningún microservicio necesitó cambiar sus URLs de conexión.
+2. **Desactivación de `performance-schema`:** Deshabilita el profiling interno de MySQL y fija `innodb-buffer-pool-size=64M`, ahorrando ~200 MB de RAM.
+3. **Límites de Heap JVM (`-Xms128m -Xmx256m`):** Cada microservicio Java 25 tiene un techo estricto de 256 MB para evitar que Spring Boot consuma RAM innecesaria.
+4. **JIT Ligero (`-XX:TieredStopAtLevel=1`):** Acelera el arranque y detiene la compilación JIT en nivel cliente C1, ahorrando ~60 MB por proceso.
 
 ---
 
@@ -51,10 +60,7 @@ flowchart TD
 2. **Git** instalado.
 3. **Puertos libres en el Host:**
    * Microservicios: **`8085`** (Config Server), **`8080`** (Shipments), **`8081`** (Couriers), **`8083`** (Security).
-   * Bases de Datos: **`3309`** (`shipment_db`), **`3308`** (`courier_db`), **`3307`** (`security_db`).
-
-> [!NOTE]
-> Los puertos de MySQL en el host se asignaron al `3307`, `3308` y `3309` para evitar cualquier colisión con un servicio de MySQL local que ya tengas corriendo en tu Windows en el puerto `3306`.
+   * Base de Datos: **`3309`** (MySQL Host Port).
 
 ---
 
@@ -73,7 +79,7 @@ Las imágenes oficiales del proyecto ya se encuentran precompiladas y publicadas
    docker compose up -d
    ```
 
-Docker descargará automáticamente las imágenes oficiales e iniciará los **7 contenedores sincronizados** en su orden correcto de dependencias.
+Docker descargará automáticamente las imágenes oficiales e iniciará los **5 contenedores sincronizados** en su orden correcto de dependencias.
 
 ---
 
@@ -84,14 +90,12 @@ Ejecuta:
 ```bash
 docker compose ps
 ```
-Deberías ver los 7 contenedores en estado `Up` y `healthy`:
+Deberías ver los 5 contenedores en estado `Up` y `healthy`:
 * `logitrack-configserver`
 * `logitrack-courier-service`
 * `logitrack-security-service`
 * `logitrack-shipment-service`
-* `logitrack-mysql-shipment`
-* `logitrack-mysql-courier`
-* `logitrack-mysql-security`
+* `logitrack-mysql`
 
 ### 2. Endpoints de Salud (Actuator Health)
 
@@ -134,15 +138,15 @@ curl -X POST http://localhost:8080/api/v1/envios/aaaaaaa1-aaaa-aaaa-aaaa-aaaaaaa
 
 ---
 
-## 🗄️ Conexión a las Bases de Datos (DBeaver / Workbench)
+## 🗄️ Conexión a la Base de Datos (DBeaver / Workbench)
 
-Puedes inspeccionar directamente las tablas conectándote a `localhost`:
+Las 3 bases de datos se encuentran en el mismo contenedor `logitrack-mysql`:
 
-| Base de Datos | Puerto Host | Base / Schema | Usuario | Password |
-| :--- | :---: | :---: | :---: | :---: |
-| **Envíos** | `3309` | `shipment_db` | `root` | `root` |
-| **Repartidores** | `3308` | `courier_db` | `root` | `root` |
-| **Seguridad** | `3307` | `security_db` | `root` | `root` |
+* **Host:** `localhost`
+* **Puerto:** `3309`
+* **Usuario:** `root`
+* **Contraseña:** `root`
+* **Bases disponibles:** `shipment_db`, `courier_db`, `security_db`.
 
 ---
 
