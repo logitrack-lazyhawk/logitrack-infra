@@ -1,0 +1,197 @@
+# ==============================================================================
+# LOGITRACK - ORQUESTACIÓN DE ECOSISTEMA (Sprint 2 - DAAS)
+# Orquestación con Docker Compose: MySQL + Config Server + Microservicios
+# ==============================================================================
+
+services:
+  # ----------------------------------------------------------------------------
+  # 1. BASES DE DATOS MYSQL (Aislamiento por microservicio - Database-per-Service)
+  # ----------------------------------------------------------------------------
+  mysql-security:
+    image: mysql:8.4.0
+    container_name: logitrack-mysql-security
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: security_db
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_security_data:/var/lib/mysql
+    networks:
+      - logitrack-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+  mysql-courier:
+    image: mysql:8.4.0
+    container_name: logitrack-mysql-courier
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: courier_db
+    ports:
+      - "3308:3306"
+    volumes:
+      - mysql_courier_data:/var/lib/mysql
+    networks:
+      - logitrack-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+  mysql-shipment:
+    image: mysql:8.4.0
+    container_name: logitrack-mysql-shipment
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: shipment_db
+    ports:
+      - "3309:3306"
+    volumes:
+      - mysql_shipment_data:/var/lib/mysql
+    networks:
+      - logitrack-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+  # ----------------------------------------------------------------------------
+  # 2. SERVIDOR DE CONFIGURACIÓN CENTRALIZADA (Spring Cloud Config Server)
+  # ----------------------------------------------------------------------------
+  configserver:
+    build:
+      context: ./config-server
+      dockerfile: Dockerfile
+    image: luism46/configserver:latest
+    container_name: logitrack-configserver
+    restart: unless-stopped
+    ports:
+      - "8085:8085"
+    environment:
+      GIT_CONFIG_URI: https://github.com/logitrack-lazyhawk/configserver-ms.git
+      SPRING_PROFILES_ACTIVE: git
+    networks:
+      - logitrack-network
+
+  # ----------------------------------------------------------------------------
+  # 3. MICROSERVICIO DE SEGURIDAD Y AUTENTICACIÓN (Puerto 8083)
+  # ----------------------------------------------------------------------------
+  security-service:
+    build:
+      context: ./security-service
+      dockerfile: Dockerfile
+    image: luism46/security-service:latest
+    container_name: logitrack-security-service
+    restart: unless-stopped
+    ports:
+      - "8083:8083"
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      CONFIG_SERVER_URL: http://configserver:8085
+      SPRING_CONFIG_IMPORT: "optional:configserver:http://configserver:8085"
+      DB_HOST: mysql-security
+      DB_PORT: 3306
+      DB_NAME: security_db
+      DB_USER: root
+      DB_PASSWORD: root
+      SECURITY_DB_USER: root
+      SECURITY_DB_PASSWORD: root
+      JPA_DDL_AUTO: update
+    depends_on:
+      mysql-security:
+        condition: service_healthy
+      configserver:
+        condition: service_started
+    networks:
+      - logitrack-network
+
+  # ----------------------------------------------------------------------------
+  # 4. MICROSERVICIO DE REPARTIDORES (Puerto 8081)
+  # ----------------------------------------------------------------------------
+  courier-service:
+    build:
+      context: ./courier-service
+      dockerfile: Dockerfile
+    image: luism46/courier-service:latest
+    container_name: logitrack-courier-service
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      CONFIG_SERVER_URL: http://configserver:8085
+      SPRING_CONFIG_IMPORT: "optional:configserver:http://configserver:8085"
+      DB_HOST: mysql-courier
+      DB_PORT: 3306
+      DB_NAME: courier_db
+      DB_USER: root
+      DB_PASSWORD: root
+      JPA_DDL_AUTO: update
+    depends_on:
+      mysql-courier:
+        condition: service_healthy
+      configserver:
+        condition: service_started
+    networks:
+      - logitrack-network
+
+  # ----------------------------------------------------------------------------
+  # 5. MICROSERVICIO DE ENVÍOS (Puerto 8080)
+  # ----------------------------------------------------------------------------
+  shipment-service:
+    build:
+      context: ./shipment-service
+      dockerfile: Dockerfile
+    image: luism46/shipment-service:latest
+    container_name: logitrack-shipment-service
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      CONFIG_SERVER_URL: http://configserver:8085
+      SPRING_CONFIG_IMPORT: "optional:configserver:http://configserver:8085"
+      DB_HOST: mysql-shipment
+      DB_PORT: 3306
+      DB_NAME: shipment_db
+      DB_USER: root
+      DB_PASSWORD: root
+      COURIER_SERVICE_URL: http://courier-service:8081
+      JPA_DDL_AUTO: update
+    depends_on:
+      mysql-shipment:
+        condition: service_healthy
+      configserver:
+        condition: service_started
+      courier-service:
+        condition: service_started
+    networks:
+      - logitrack-network
+
+# ------------------------------------------------------------------------------
+# REDES Y VOLÚMENES PERSISTENTES
+# ------------------------------------------------------------------------------
+networks:
+  logitrack-network:
+    name: logitrack-network
+    driver: bridge
+
+volumes:
+  mysql_security_data:
+    name: logitrack-mysql-security-data
+  mysql_courier_data:
+    name: logitrack-mysql-courier-data
+  mysql_shipment_data:
+    name: logitrack-mysql-shipment-data

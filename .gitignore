@@ -1,0 +1,9 @@
+# Archivos de sistema y logs
+*.log
+.DS_Store
+Thumbs.db
+
+# IDEs
+.idea/
+.vscode/
+*.iml
