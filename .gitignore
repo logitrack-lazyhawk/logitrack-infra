@@ -7,3 +7,7 @@ Thumbs.db
 .idea/
 .vscode/
 *.iml
+
+# Variables de entorno con credenciales
+.env
+

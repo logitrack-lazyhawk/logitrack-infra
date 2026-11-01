@@ -53,6 +53,12 @@ services:
       GIT_CONFIG_URI: https://github.com/logitrack-lazyhawk/configserver-ms.git
       SPRING_PROFILES_ACTIVE: git
       JAVA_OPTS: "-Xms128m -Xmx256m -XX:TieredStopAtLevel=1 -XX:+UseContainerSupport"
+    healthcheck:
+      test: ["CMD-SHELL", "echo Q | openssl s_client -connect 127.0.0.1:8085 2>&1 | grep -q CONNECTED || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+      start_period: 10s
     networks:
       - logitrack-network
 
@@ -61,7 +67,7 @@ services:
   # ----------------------------------------------------------------------------
   security-service:
     build:
-      context: ./security-service
+      context: ../security-service
       dockerfile: Dockerfile
     image: luism46/security-service:latest
     container_name: logitrack-security-service
@@ -85,7 +91,7 @@ services:
       mysql:
         condition: service_healthy
       configserver:
-        condition: service_started
+        condition: service_healthy
     networks:
       - logitrack-network
 
@@ -94,7 +100,7 @@ services:
   # ----------------------------------------------------------------------------
   courier-service:
     build:
-      context: ./courier-service
+      context: ../courier-service
       dockerfile: Dockerfile
     image: luism46/courier-service:latest
     container_name: logitrack-courier-service
@@ -116,7 +122,7 @@ services:
       mysql:
         condition: service_healthy
       configserver:
-        condition: service_started
+        condition: service_healthy
     networks:
       - logitrack-network
 
@@ -125,7 +131,7 @@ services:
   # ----------------------------------------------------------------------------
   shipment-service:
     build:
-      context: ./shipment-service
+      context: ../shipment-service
       dockerfile: Dockerfile
     image: luism46/shipment-service:latest
     container_name: logitrack-shipment-service
@@ -148,7 +154,7 @@ services:
       mysql:
         condition: service_healthy
       configserver:
-        condition: service_started
+        condition: service_healthy
       courier-service:
         condition: service_started
     networks:
