@@ -42,7 +42,7 @@ services:
   # ----------------------------------------------------------------------------
   configserver:
     build:
-      context: ./config-server
+      context: ../config-server
       dockerfile: Dockerfile
     image: luism46/configserver:latest
     container_name: logitrack-configserver
