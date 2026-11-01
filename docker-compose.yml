@@ -160,6 +160,17 @@ services:
     networks:
       - logitrack-network
 
+# ----------------------------------------------------------------------------
+# 6. SERVIDOR DE TRAZABILIDAD DISTRIBUIDA (Zipkin)
+# ----------------------------------------------------------------------------
+  zipkin-server:
+    image: openzipkin/zipkin:latest
+    container_name: logitrack-zipkin-server
+    restart: unless-stopped
+    ports:
+      - "9411:9411"
+    networks:
+      - logitrack-network
 # ------------------------------------------------------------------------------
 # REDES Y VOLÚMENES PERSISTENTES
 # ------------------------------------------------------------------------------
