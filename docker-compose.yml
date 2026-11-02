@@ -1,45 +1,40 @@
-# ==============================================================================
-# LOGITRACK - ORQUESTACIÓN DE ECOSISTEMA (Sprint 2 - DAAS)
-# Orquestación con Docker Compose: MySQL Optimizado + Config Server + Microservicios
-# Arquitectura optimizada para bajo consumo de memoria RAM (5 contenedores)
-# ==============================================================================
-
+# Sprint 3: Feign, Eureka y trazabilidad. Configuración local montada desde configserver-ms.
 services:
-  # ----------------------------------------------------------------------------
-  # 1. BASE DE DATOS MYSQL UNIFICADA (Optimización de RAM y Network Aliases)
-  # ----------------------------------------------------------------------------
   mysql:
     image: mysql:8.4.0
     container_name: logitrack-mysql
     restart: unless-stopped
-    command: >
-      --performance-schema=OFF
-      --innodb-buffer-pool-size=64M
-      --max-connections=100
+    command: '--performance-schema=OFF --innodb-buffer-pool-size=64M --max-connections=100
+
+      '
     environment:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: shipment_db
     ports:
-      - "3309:3306"
+    - 3309:3306
     volumes:
-      - mysql_data:/var/lib/mysql
-      - ./init-dbs.sql:/docker-entrypoint-initdb.d/init-dbs.sql:ro
+    - mysql_data:/var/lib/mysql
+    - ./init-dbs.sql:/docker-entrypoint-initdb.d/init-dbs.sql:ro
     networks:
       logitrack-network:
         aliases:
-          - mysql-shipment
-          - mysql-courier
-          - mysql-security
+        - mysql-shipment
+        - mysql-courier
+        - mysql-security
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      test:
+      - CMD
+      - mysqladmin
+      - ping
+      - -h
+      - localhost
+      - -u
+      - root
+      - -proot
       interval: 5s
       timeout: 5s
       retries: 10
       start_period: 15s
-
-  # ----------------------------------------------------------------------------
-  # 2. SERVIDOR DE CONFIGURACIÓN CENTRALIZADA (Spring Cloud Config Server)
-  # ----------------------------------------------------------------------------
   configserver:
     build:
       context: ../config-server
@@ -48,23 +43,27 @@ services:
     container_name: logitrack-configserver
     restart: unless-stopped
     ports:
-      - "8085:8085"
+    - 8085:8085
     environment:
-      GIT_CONFIG_URI: https://github.com/logitrack-lazyhawk/configserver-ms.git
-      SPRING_PROFILES_ACTIVE: git
-      JAVA_OPTS: "-Xms128m -Xmx256m -XX:TieredStopAtLevel=1 -XX:+UseContainerSupport"
+      SPRING_PROFILES_ACTIVE: native
+      JAVA_OPTS: -Xms128m -Xmx256m -XX:TieredStopAtLevel=1 -XX:+UseContainerSupport
+      ZIPKIN_ENDPOINT: http://zipkin-server:9411/api/v2/spans
+      SPRING_CLOUD_CONFIG_SERVER_NATIVE_SEARCH_LOCATIONS: file:/config
     healthcheck:
-      test: ["CMD-SHELL", "echo Q | openssl s_client -connect 127.0.0.1:8085 2>&1 | grep -q CONNECTED || exit 1"]
+      test:
+      - CMD
+      - curl
+      - --fail
+      - --silent
+      - http://localhost:8085/actuator/health
       interval: 5s
       timeout: 5s
       retries: 15
       start_period: 10s
     networks:
-      - logitrack-network
-
-  # ----------------------------------------------------------------------------
-  # 3. MICROSERVICIO DE SEGURIDAD Y AUTENTICACIÓN (Puerto 8083)
-  # ----------------------------------------------------------------------------
+    - logitrack-network
+    volumes:
+    - ../configserver-ms:/config:ro
   security-service:
     build:
       context: ../security-service
@@ -73,11 +72,10 @@ services:
     container_name: logitrack-security-service
     restart: unless-stopped
     ports:
-      - "8083:8083"
+    - 8083:8083
     environment:
       SPRING_PROFILES_ACTIVE: dev
       CONFIG_SERVER_URL: http://configserver:8085
-      SPRING_CONFIG_IMPORT: "optional:configserver:http://configserver:8085"
       DB_HOST: mysql-security
       DB_PORT: 3306
       DB_NAME: security_db
@@ -86,18 +84,29 @@ services:
       SECURITY_DB_USER: root
       SECURITY_DB_PASSWORD: root
       JPA_DDL_AUTO: update
-      JAVA_OPTS: "-Xms128m -Xmx256m -XX:TieredStopAtLevel=1 -XX:+UseContainerSupport"
+      JAVA_OPTS: -Xms128m -Xmx256m -XX:TieredStopAtLevel=1 -XX:+UseContainerSupport
+      EUREKA_SERVER_URL: http://eureka-server:8065/eureka/
+      ZIPKIN_ENDPOINT: http://zipkin-server:9411/api/v2/spans
     depends_on:
       mysql:
         condition: service_healthy
       configserver:
         condition: service_healthy
+      eureka-server:
+        condition: service_healthy
     networks:
-      - logitrack-network
-
-  # ----------------------------------------------------------------------------
-  # 4. MICROSERVICIO DE REPARTIDORES (Puerto 8081)
-  # ----------------------------------------------------------------------------
+    - logitrack-network
+    healthcheck:
+      test:
+      - CMD
+      - curl
+      - --fail
+      - --silent
+      - http://localhost:8083/actuator/health
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
   courier-service:
     build:
       context: ../courier-service
@@ -106,29 +115,39 @@ services:
     container_name: logitrack-courier-service
     restart: unless-stopped
     ports:
-      - "8081:8081"
+    - 8081:8081
     environment:
       SPRING_PROFILES_ACTIVE: dev
       CONFIG_SERVER_URL: http://configserver:8085
-      SPRING_CONFIG_IMPORT: "optional:configserver:http://configserver:8085"
       DB_HOST: mysql-courier
       DB_PORT: 3306
       DB_NAME: courier_db
       DB_USER: root
       DB_PASSWORD: root
       JPA_DDL_AUTO: update
-      JAVA_OPTS: "-Xms128m -Xmx256m -XX:TieredStopAtLevel=1 -XX:+UseContainerSupport"
+      JAVA_OPTS: -Xms128m -Xmx256m -XX:TieredStopAtLevel=1 -XX:+UseContainerSupport
+      EUREKA_SERVER_URL: http://eureka-server:8065/eureka/
+      ZIPKIN_ENDPOINT: http://zipkin-server:9411/api/v2/spans
     depends_on:
       mysql:
         condition: service_healthy
       configserver:
         condition: service_healthy
+      eureka-server:
+        condition: service_healthy
     networks:
-      - logitrack-network
-
-  # ----------------------------------------------------------------------------
-  # 5. MICROSERVICIO DE ENVÍOS (Puerto 8080)
-  # ----------------------------------------------------------------------------
+    - logitrack-network
+    healthcheck:
+      test:
+      - CMD
+      - curl
+      - --fail
+      - --silent
+      - http://localhost:8081/actuator/health
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
   shipment-service:
     build:
       context: ../shipment-service
@@ -137,48 +156,81 @@ services:
     container_name: logitrack-shipment-service
     restart: unless-stopped
     ports:
-      - "8080:8080"
+    - 8080:8080
     environment:
       SPRING_PROFILES_ACTIVE: dev
       CONFIG_SERVER_URL: http://configserver:8085
-      SPRING_CONFIG_IMPORT: "optional:configserver:http://configserver:8085"
       DB_HOST: mysql-shipment
       DB_PORT: 3306
       DB_NAME: shipment_db
       DB_USER: root
       DB_PASSWORD: root
-      COURIER_SERVICE_URL: http://courier-service:8081
       JPA_DDL_AUTO: update
-      JAVA_OPTS: "-Xms128m -Xmx256m -XX:TieredStopAtLevel=1 -XX:+UseContainerSupport"
+      JAVA_OPTS: -Xms128m -Xmx256m -XX:TieredStopAtLevel=1 -XX:+UseContainerSupport
+      EUREKA_SERVER_URL: http://eureka-server:8065/eureka/
+      ZIPKIN_ENDPOINT: http://zipkin-server:9411/api/v2/spans
     depends_on:
       mysql:
         condition: service_healthy
       configserver:
         condition: service_healthy
       courier-service:
-        condition: service_started
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
     networks:
-      - logitrack-network
-
-# ----------------------------------------------------------------------------
-# 6. SERVIDOR DE TRAZABILIDAD DISTRIBUIDA (Zipkin)
-# ----------------------------------------------------------------------------
+    - logitrack-network
+    healthcheck:
+      test:
+      - CMD
+      - curl
+      - --fail
+      - --silent
+      - http://localhost:8080/actuator/health
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
   zipkin-server:
     image: openzipkin/zipkin:latest
     container_name: logitrack-zipkin-server
     restart: unless-stopped
     ports:
-      - "9411:9411"
+    - 9411:9411
     networks:
-      - logitrack-network
-# ------------------------------------------------------------------------------
-# REDES Y VOLÚMENES PERSISTENTES
-# ------------------------------------------------------------------------------
+    - logitrack-network
+  eureka-server:
+    build:
+      context: ./eureka-server
+    image: logitrack/eureka-server:local
+    restart: unless-stopped
+    ports:
+    - 8065:8065
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      CONFIG_SERVER_URL: http://configserver:8085
+      ZIPKIN_ENDPOINT: http://zipkin-server:9411/api/v2/spans
+      JAVA_OPTS: -Xms128m -Xmx256m
+    depends_on:
+      configserver:
+        condition: service_healthy
+    healthcheck:
+      test:
+      - CMD
+      - curl
+      - --fail
+      - --silent
+      - http://localhost:8065/actuator/health
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+    networks:
+    - logitrack-network
 networks:
   logitrack-network:
     name: logitrack-network
     driver: bridge
-
 volumes:
   mysql_data:
     name: logitrack-mysql-data

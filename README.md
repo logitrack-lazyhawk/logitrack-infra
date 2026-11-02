@@ -1,3 +1,10 @@
+# LogiTrack: Sprint 3
+
+La guía vigente de OpenFeign, Eureka y Zipkin está en [SPRINT3.md](SPRINT3.md).
+Los resultados y límites de las comprobaciones están en [VALIDACION-SPRINT3.md](VALIDACION-SPRINT3.md).
+
+El contenido siguiente describe la infraestructura original del Sprint 2.
+
 # 📦 LogiTrack Infraestructura & Orquestación (Sprint 2)
 
 [![Docker](https://img.shields.io/badge/Docker-29.8-blue?logo=docker)](https://www.docker.com/)
