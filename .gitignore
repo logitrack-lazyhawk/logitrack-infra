@@ -10,4 +10,6 @@ Thumbs.db
 
 # Variables de entorno con credenciales
 .env
+**/target/
+**/__pycache__/
 
