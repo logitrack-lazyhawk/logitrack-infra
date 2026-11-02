@@ -38,24 +38,21 @@ services:
       start_period: 15s
 
   # ----------------------------------------------------------------------------
-  # 2.5. SERVIDOR DE DESCUBRIMIENTO (Eureka Server)
+  # 2. SERVIDOR DE CONFIGURACIÓN CENTRALIZADA (Spring Cloud Config Server)
   # ----------------------------------------------------------------------------
-  eureka-server:
+  configserver:
     build:
-      context: ../eureka-server
+      context: ../config-server
       dockerfile: Dockerfile
-    image: luism46/eureka-server:latest
-    container_name: logitrack-eureka-server
+    image: luism46/configserver:latest
+    container_name: logitrack-configserver
     restart: unless-stopped
     ports:
-      - "8065:8065"
+      - "8085:8085"
     environment:
-      SPRING_PROFILES_ACTIVE: prod
-      SPRING_CONFIG_IMPORT: configserver:http://configserver:8085
+      GIT_CONFIG_URI: https://github.com/logitrack-lazyhawk/configserver-ms.git
+      SPRING_PROFILES_ACTIVE: git
       JAVA_OPTS: "-Xms128m -Xmx256m -XX:TieredStopAtLevel=1 -XX:+UseContainerSupport"
-    depends_on:
-      configserver:
-        condition: service_started
     networks:
       - logitrack-network
 
@@ -168,5 +165,3 @@ networks:
 volumes:
   mysql_data:
     name: logitrack-mysql-data
-
-

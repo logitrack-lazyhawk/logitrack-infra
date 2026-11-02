@@ -1,3 +1,10 @@
+# LogiTrack: Sprint 3
+
+La guía vigente de OpenFeign, Eureka y Zipkin está en [SPRINT3.md](SPRINT3.md).
+Los resultados y límites de las comprobaciones están en [VALIDACION-SPRINT3.md](VALIDACION-SPRINT3.md).
+
+El contenido siguiente describe la infraestructura original del Sprint 2.
+
 # 📦 LogiTrack Infraestructura & Orquestación (Sprint 2)
 
 [![Docker](https://img.shields.io/badge/Docker-29.8-blue?logo=docker)](https://www.docker.com/)
@@ -64,22 +71,43 @@ El stack fue optimizado para reducir el consumo de **~4 GB a solo ~1.7 GB** sin 
 
 ---
 
-## 🚀 Despliegue Rápido (1 solo comando)
+## 🚀 Modos de Despliegue
 
-Las imágenes oficiales del proyecto ya se encuentran precompiladas y publicadas en **Docker Hub** (`luism46/...`). No necesitas instalar Java 25 ni Maven en tu máquina.
+El archivo `docker-compose.yml` está configurado con **soporte dual**: permite tanto **descargar imágenes precompiladas de Docker Hub** (ideal para desplegar rápido sin clonar los demás repositorios) como **compilar desde el código fuente local** (ideal para desarrollo activo).
 
-1. **Clonar este repositorio de infraestructura:**
-   ```bash
-   git clone https://github.com/logitrack-lazyhawk/logitrack-infra.git
-   cd logitrack-infra
-   ```
+Debes ejecutar los comandos parado en la carpeta `logitrack-infra`:
 
-2. **Levantar el ecosistema completo:**
-   ```bash
-   docker compose up -d
-   ```
+```bash
+cd logitrack-infra
+```
 
-Docker descargará automáticamente las imágenes oficiales e iniciará los **5 contenedores sincronizados** en su orden correcto de dependencias.
+---
+
+### Opción A: Despliegue Rápido desde Docker Hub (Sin clonar otros repos)
+
+Si solo clonaste este repositorio y querés levantar todo el ecosistema usando las imágenes oficiales publicadas en Docker Hub (`luism46/...`):
+
+```bash
+# 1. Descargar las últimas versiones de las imágenes
+docker compose pull
+
+# 2. Levantar los contenedores ignorando la compilación local
+docker compose up -d --no-build
+```
+
+> [!TIP]
+> Al usar `--no-build`, Docker Compose no buscará los directorios de código fuente en tu máquina ni requerirá Java o Maven instalado.
+
+---
+
+### Opción B: Compilación Local desde Código Fuente (Modo Desarrollo)
+
+Si clonaste todos los microservicios en la misma carpeta raíz (como repositorios hermanos: `config-server`, `courier-service`, `shipment-service`, etc.) y realizaste modificaciones en el código:
+
+```bash
+# Compilar las imágenes localmente y levantar el ecosistema
+docker compose up -d --build
+```
 
 ---
 
@@ -109,32 +137,6 @@ Deberías ver los 5 contenedores en estado `Up` y `healthy`:
 ### 3. Documentación Interactiva (Swagger UI)
 * **Shipment Service:** [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)
 * **Courier Service:** [http://localhost:8081/swagger-ui.html](http://localhost:8081/swagger-ui.html)
-
----
-
-## 🧪 Pruebas de Integración (OpenFeign)
-
-El sistema precarga automáticamente datos de prueba desde scripts `data.sql` mediante Hibernate:
-* **Repartidor Activo:** `d1111111-1111-1111-1111-111111111111` (*Carlos Gómez*)
-* **Repartidor Inactivo:** `d5555555-5555-5555-5555-555555555555` (*Roberto Díaz*)
-* **Envío Pendiente:** `aaaaaaa1-aaaa-aaaa-aaaa-aaaaaaaaaaaa`
-
-### Test 1: Asignar Repartidor Activo (Comunicación Feign Exitosa)
-En PowerShell o cURL:
-```bash
-curl -X POST http://localhost:8080/api/v1/envios/aaaaaaa1-aaaa-aaaa-aaaa-aaaaaaaaaaaa/asignar-repartidor `
-  -H "Content-Type: application/json" `
-  -d '{"repartidorId": "d1111111-1111-1111-1111-111111111111"}'
-```
-*Respuesta esperada:* `200 OK` con el JSON del envío y el campo `repartidorId` asignado.
-
-### Test 2: Validar Regla de Negocio (Rechazo por Inactivo)
-```bash
-curl -X POST http://localhost:8080/api/v1/envios/aaaaaaa1-aaaa-aaaa-aaaa-aaaaaaaaaaaa/asignar-repartidor `
-  -H "Content-Type: application/json" `
-  -d '{"repartidorId": "d5555555-5555-5555-5555-555555555555"}'
-```
-*Respuesta esperada:* `400 Bad Request` con mensaje *"Operación no permitida: El repartidor se encuentra inactivo y no está disponible."*
 
 ---
 
