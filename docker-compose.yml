@@ -1,12 +1,11 @@
 # ==============================================================================
-# LOGITRACK - ORQUESTACIÓN DE ECOSISTEMA (Sprint 2 - DAAS)
-# Orquestación con Docker Compose: MySQL Optimizado + Config Server + Microservicios
-# Arquitectura optimizada para bajo consumo de memoria RAM (5 contenedores)
+# LOGITRACK - ORQUESTACIÓN DE ECOSISTEMA (Sprint 3 - DAAS)
+# Orquestación con Docker Compose: MySQL + Config Server + Eureka + Microservicios
 # ==============================================================================
 
 services:
   # ----------------------------------------------------------------------------
-  # 1. BASE DE DATOS MYSQL UNIFICADA (Optimización de RAM y Network Aliases)
+  # 1. BASE DE DATOS MYSQL UNIFICADA
   # ----------------------------------------------------------------------------
   mysql:
     image: mysql:8.4.0
@@ -37,9 +36,31 @@ services:
       retries: 10
       start_period: 15s
 
+  # ----------------------------------------------------------------------------
+  # 2. SERVIDOR DE CONFIGURACIÓN CENTRALIZADA (Spring Cloud Config Server)
+  # ----------------------------------------------------------------------------
+  configserver:
+    build:
+      context: ../config-server
+      dockerfile: Dockerfile
+    image: luism46/configserver:latest
+    container_name: logitrack-configserver
+    restart: unless-stopped
+    ports:
+      - "8085:8085"
+    environment:
+      GIT_CONFIG_URI: https://github.com/logitrack-lazyhawk/configserver-ms.git
+      SPRING_PROFILES_ACTIVE: git
+      JAVA_OPTS: "-Xms128m -Xmx256m -XX:TieredStopAtLevel=1 -XX:+UseContainerSupport"
+    networks:
+      - logitrack-network
+
+  # ----------------------------------------------------------------------------
+  # 3. SERVIDOR DE DESCUBRIMIENTO EUREKA (Spring Cloud Eureka Server)
+  # ----------------------------------------------------------------------------
   eureka-server:
     build:
-      context: ../eureka-server  # Ruta al proyecto del eureka-server
+      context: ../eureka-server
       dockerfile: Dockerfile
     image: luism46/eureka-server:latest
     container_name: logitrack-eureka-server
@@ -49,6 +70,7 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: prod
       SPRING_CONFIG_IMPORT: configserver:http://configserver:8085
+      JAVA_OPTS: "-Xms128m -Xmx256m -XX:TieredStopAtLevel=1 -XX:+UseContainerSupport"
     depends_on:
       - configserver
     networks:
@@ -57,7 +79,7 @@ services:
           - eureka-server
 
   # ----------------------------------------------------------------------------
-  # 3. MICROSERVICIO DE SEGURIDAD Y AUTENTICACIÓN (Puerto 8083)
+  # 4. MICROSERVICIO DE SEGURIDAD Y AUTENTICACIÓN (Puerto 8083)
   # ----------------------------------------------------------------------------
   security-service:
     build:
@@ -80,17 +102,20 @@ services:
       SECURITY_DB_USER: root
       SECURITY_DB_PASSWORD: root
       JPA_DDL_AUTO: update
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8065/eureka/
       JAVA_OPTS: "-Xms128m -Xmx256m -XX:TieredStopAtLevel=1 -XX:+UseContainerSupport"
     depends_on:
       mysql:
         condition: service_healthy
       configserver:
         condition: service_started
+      eureka-server:
+        condition: service_started
     networks:
       - logitrack-network
 
   # ----------------------------------------------------------------------------
-  # 4. MICROSERVICIO DE REPARTIDORES (Puerto 8081)
+  # 5. MICROSERVICIO DE REPARTIDORES (Puerto 8081)
   # ----------------------------------------------------------------------------
   courier-service:
     build:
@@ -111,17 +136,20 @@ services:
       DB_USER: root
       DB_PASSWORD: root
       JPA_DDL_AUTO: update
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8065/eureka/
       JAVA_OPTS: "-Xms128m -Xmx256m -XX:TieredStopAtLevel=1 -XX:+UseContainerSupport"
     depends_on:
       mysql:
         condition: service_healthy
       configserver:
         condition: service_started
+      eureka-server:
+        condition: service_started
     networks:
       - logitrack-network
 
   # ----------------------------------------------------------------------------
-  # 5. MICROSERVICIO DE ENVÍOS (Puerto 8080)
+  # 6. MICROSERVICIO DE ENVÍOS (Puerto 8080)
   # ----------------------------------------------------------------------------
   shipment-service:
     build:
@@ -143,11 +171,14 @@ services:
       DB_PASSWORD: root
       COURIER_SERVICE_URL: http://courier-service:8081
       JPA_DDL_AUTO: update
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8065/eureka/
       JAVA_OPTS: "-Xms128m -Xmx256m -XX:TieredStopAtLevel=1 -XX:+UseContainerSupport"
     depends_on:
       mysql:
         condition: service_healthy
       configserver:
+        condition: service_started
+      eureka-server:
         condition: service_started
       courier-service:
         condition: service_started
