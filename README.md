@@ -88,17 +88,50 @@ flowchart TD
 
 ---
 
-## 🚀 Despliegue con Docker Compose
+## 🚀 Modos de Despliegue
 
-Ejecutar desde el directorio `logitrack-infra`:
+El archivo `docker-compose.yml` está configurado con **soporte dual**: permite tanto **descargar imágenes precompiladas de Docker Hub** (ideal para desplegar rápido sin clonar los demás repositorios) como **compilar desde el código fuente local** (ideal para desarrollo activo).
 
-### 1. Construir las imágenes y levantar todo el stack:
+Debes ejecutar los comandos parado en la carpeta `logitrack-infra`:
+
 ```bash
+cd logitrack-infra
+```
+
+---
+
+### Opción A: Despliegue Rápido desde Docker Hub (Sin clonar otros repos)
+
+Si solo clonaste este repositorio y querés levantar todo el ecosistema usando las imágenes oficiales publicadas en Docker Hub (`luism46/...`):
+
+```bash
+# 1. Descargar las últimas versiones de las imágenes de Docker Hub
+docker compose pull
+
+# 2. Levantar los contenedores ignorando la compilación local
+docker compose up -d --no-build
+```
+
+> [!TIP]
+> Al usar `--no-build`, Docker Compose no buscará los directorios de código fuente en tu máquina ni requerirá Java o Maven instalado.
+
+---
+
+### Opción B: Compilación Local desde Código Fuente (Modo Desarrollo)
+
+Si clonaste todos los microservicios en la misma carpeta raíz (como repositorios hermanos: `api-gateway`, `eureka-server`, `security-service`, `courier-service`, `shipment-service`, `config-server`) y realizaste modificaciones en el código:
+
+```bash
+# Compilar las imágenes localmente y levantar el ecosistema completo
 docker compose up -d --build
 ```
 
-### 2. Verificar el estado de los contenedores:
+---
+
+### Verificación del Despliegue:
+
 ```bash
+# Verificar que los 8 contenedores estén Up y healthy
 docker compose ps
 ```
 Deberías ver los 8 contenedores en estado `Up` y `healthy`:
