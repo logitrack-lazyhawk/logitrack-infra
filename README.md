@@ -15,6 +15,10 @@ Este repositorio centraliza la orquestación con `docker-compose.yml` para despl
 
 ## 🏛️ Arquitectura del Ecosistema (Sprint 3)
 
+<p align="center">
+  <img src="docs/img/architecture-sprint3.jpg" alt="Diagrama de Arquitectura LogiTrack Sprint 3" width="950px" />
+</p>
+
 Toda petición externa ingresa obligatoriamente por el **API Gateway** (puerto `8066`), el cual valida los tokens JWT, aplica control de acceso basado en roles (RBAC), gestiona políticas de CORS y enruta dinámicamente (`lb://`) mediante **Eureka Server**.
 
 ```mermaid
