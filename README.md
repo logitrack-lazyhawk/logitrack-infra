@@ -1,154 +1,115 @@
-# LogiTrack: Sprint 3
-
-La guía vigente de OpenFeign, Eureka y Zipkin está en [SPRINT3.md](SPRINT3.md).
-Los resultados y límites de las comprobaciones están en [VALIDACION-SPRINT3.md](VALIDACION-SPRINT3.md).
-
-El contenido siguiente describe la infraestructura original del Sprint 2.
-
-# 📦 LogiTrack Infraestructura & Orquestación (Sprint 2)
+# 📦 LogiTrack Infraestructura & Orquestación (Sprint 3)
 
 [![Docker](https://img.shields.io/badge/Docker-29.8-blue?logo=docker)](https://www.docker.com/)
 [![Docker Compose](https://img.shields.io/badge/Docker_Compose-v2-blue?logo=docker)](https://docs.docker.com/compose/)
 [![Java](https://img.shields.io/badge/Java-25-orange?logo=openjdk)](https://adoptium.net/)
 [![Spring Boot](https://img.shields.io/badge/Spring_Boot-4.x-green?logo=springboot)](https://spring.io/projects/spring-boot)
+[![Spring Cloud](https://img.shields.io/badge/Spring_Cloud-2025.1.4-green?logo=spring)](https://spring.io/projects/spring-cloud)
 [![MySQL](https://img.shields.io/badge/MySQL-8.4-blue?logo=mysql)](https://www.mysql.com/)
 
 Repositorio oficial de infraestructura y orquestación del proyecto **LogiTrack (LazyHawk)** para la cátedra de **DAAS (2026)** - Universidad Nacional de Jujuy (UNJu).
 
-Este repositorio centraliza el archivo `docker-compose.yml` para desplegar el ecosistema completo de microservicios, bases de datos aisladas y el servidor de configuración con un **diseño optimizado para bajo consumo de memoria RAM** (~1.7 GB total).
+Este repositorio centraliza la orquestación con `docker-compose.yml` para desplegar el ecosistema distribuido completo del Sprint 3: **API Gateway**, **Eureka Server**, **Zipkin**, **Config Server**, **Bases de Datos MySQL independientes** y **Microservicios de Dominio** comunicados con OpenFeign y resiliencia.
 
 ---
 
-## 🏛️ Arquitectura del Ecosistema
+## 🏛️ Arquitectura del Ecosistema (Sprint 3)
 
-El despliegue implementa el patrón **Database-per-Service** (con esquemas independientes) servido por una única instancia de MySQL mediante **Docker Network Aliases** para minimizar el uso de RAM:
+Toda petición externa ingresa obligatoriamente por el **API Gateway** (puerto `8066`), el cual valida los tokens JWT, aplica control de acceso basado en roles (RBAC), gestiona políticas de CORS y enruta dinámicamente (`lb://`) mediante **Eureka Server**.
 
 ```mermaid
 flowchart TD
-    subgraph Host ["Máquina Host (Tu PC)"]
-        subgraph DockerNetwork ["Red Docker: logitrack-network (bridge)"]
-            CS["logitrack-configserver:8085\n(Spring Cloud Config)"]
-            SEC["logitrack-security-service:8083"]
-            COUR["logitrack-courier-service:8081"]
-            SHIP["logitrack-shipment-service:8080"]
-            
-            DB[("logitrack-mysql:3306\nAliases: mysql-security, mysql-courier, mysql-shipment\nEsquemas: shipment_db, courier_db, security_db")]
-        end
+    Client["🖥️ Cliente / Frontend / Postman / Apidog"] -->|HTTP / CORS| GW["API Gateway\n:8066\n(Filtro JWT & RBAC)"]
+
+    subgraph DockerNetwork ["Red Docker: logitrack-network (bridge)"]
+        GW -->|lb://SECURITY-SERVICE| SEC["security-service\n:8083"]
+        GW -->|lb://COURIER-SERVICE| COUR["courier-service\n:8081"]
+        GW -->|lb://SHIPMENT-SERVICE| SHIP["shipment-service\n:8080"]
+
+        SHIP -->|OpenFeign + Resiliencia| COUR
+
+        EUR["eureka-server\n:8065\n(Service Discovery)"]
+        CFG["configserver\n:8085\n(Spring Cloud Config)"]
+        ZIP["zipkin-server\n:9411\n(Trazabilidad Distribuida)"]
+
+        DB[("MySQL 8.4:3306\nEsquemas: shipment_db, courier_db, security_db")]
+
+        SEC --- EUR
+        COUR --- EUR
+        SHIP --- EUR
+        GW --- EUR
+
+        CFG -.->|Propiedades centralizadas| SEC
+        CFG -.->|Propiedades centralizadas| COUR
+        CFG -.->|Propiedades centralizadas| SHIP
+        CFG -.->|Propiedades centralizadas| GW
+        CFG -.->|Propiedades centralizadas| EUR
+
+        SEC --> DB
+        COUR --> DB
+        SHIP --> DB
+
+        SEC -.->|Spans| ZIP
+        COUR -.->|Spans| ZIP
+        SHIP -.->|Spans| ZIP
+        GW -.->|Spans| ZIP
     end
-
-    GitHub[("GitHub: configserver-ms")] -.->|Git Pull dinámico| CS
-    CS -->|Configuración centralizada| SEC
-    CS -->|Configuración centralizada| COUR
-    CS -->|Configuración centralizada| SHIP
-    
-    SEC -->|mysql-security:3306| DB
-    COUR -->|mysql-courier:3306| DB
-    SHIP -->|mysql-shipment:3306| DB
-    
-    SHIP -->|OpenFeign REST /api/v1/repartidores| COUR
 ```
 
 ---
 
-## ⚡ Optimizaciones de Memoria RAM Aplicadas
+## 🗄️ Estado de las Bases de Datos
 
-El stack fue optimizado para reducir el consumo de **~4 GB a solo ~1.7 GB** sin perder ninguna funcionalidad:
-
-1. **MySQL Unificado con Network Aliases:** 1 solo motor MySQL corriendo 3 esquemas independientes (`shipment_db`, `courier_db`, `security_db`). Gracias a los alias de red (`mysql-shipment`, `mysql-courier`, `mysql-security`), ningún microservicio necesitó cambiar sus URLs de conexión.
-2. **Desactivación de `performance-schema`:** Deshabilita el profiling interno de MySQL y fija `innodb-buffer-pool-size=64M`, ahorrando ~200 MB de RAM.
-3. **Límites de Heap JVM (`-Xms128m -Xmx256m`):** Cada microservicio Java 25 tiene un techo estricto de 256 MB para evitar que Spring Boot consuma RAM innecesaria.
-4. **JIT Ligero (`-XX:TieredStopAtLevel=1`):** Acelera el arranque y detiene la compilación JIT en nivel cliente C1, ahorrando ~60 MB por proceso.
-
----
-
-## 📋 Requisitos Previos
-
-1. **[Docker Desktop](https://www.docker.com/products/docker-desktop/)** instalado y en ejecución (en Windows, habilitar la integración con WSL 2).
-2. **Git** instalado.
-3. **Puertos libres en el Host:**
-   * Microservicios: **`8085`** (Config Server), **`8080`** (Shipments), **`8081`** (Couriers), **`8083`** (Security).
-   * Base de Datos: **`3309`** (MySQL Host Port).
+* **Las imágenes de MySQL no traen registros pre-cargados:** La imagen base oficial `mysql:8.4.0` se inicializa únicamente ejecutando el script [`init-dbs.sql`](init-dbs.sql), el cual crea los 3 esquemas vacíos:
+  * `shipment_db`
+  * `courier_db`
+  * `security_db`
+* **Persistencia:** Los datos residen en el volumen Docker persistente `mysql_data`.
+* **Para reiniciar las bases de datos totalmente limpias y sin registros:**
+  ```bash
+  docker compose down -v
+  docker compose up -d
+  ```
 
 ---
 
-## 🚀 Modos de Despliegue
+## 📋 Puertos y Endpoints del Ecosistema
 
-El archivo `docker-compose.yml` está configurado con **soporte dual**: permite tanto **descargar imágenes precompiladas de Docker Hub** (ideal para desplegar rápido sin clonar los demás repositorios) como **compilar desde el código fuente local** (ideal para desarrollo activo).
+| Componente | Contenedor | Puerto Host | Descripción | Endpoint de Verificación |
+| :--- | :--- | :---: | :--- | :--- |
+| **API Gateway** | `logitrack-api-gateway` | `8066` | Puerta de enlace única y seguridad JWT | [http://localhost:8066/actuator/gateway/routes](http://localhost:8066/actuator/gateway/routes) |
+| **Eureka Server** | `logitrack-eureka-server` | `8065` | Registro y descubrimiento de servicios | [http://localhost:8065](http://localhost:8065) |
+| **Zipkin UI** | `logitrack-zipkin` | `9411` | Servidor de trazas y observabilidad | [http://localhost:9411](http://localhost:9411) |
+| **Config Server** | `logitrack-configserver` | `8085` | Servidor de configuración centralizada | [http://localhost:8085/api-gateway/dev](http://localhost:8085/api-gateway/dev) |
+| **Shipment Service** | `logitrack-shipment-service` | `8080` | Gestión de envíos y tarifas | [http://localhost:8080/actuator/health](http://localhost:8080/actuator/health) |
+| **Courier Service** | `logitrack-courier-service` | `8081` | Gestión de repartidores | [http://localhost:8081/actuator/health](http://localhost:8081/actuator/health) |
+| **Security Service** | `logitrack-security-service` | `8083` | Autenticación y generación de JWT | [http://localhost:8083/actuator/health](http://localhost:8083/actuator/health) |
+| **MySQL Unificado** | `logitrack-mysql` | `3309` | Motor de base de datos (puerto host `3309`) | `mysql -h 127.0.0.1 -P 3309 -u root -proot` |
 
-Debes ejecutar los comandos parado en la carpeta `logitrack-infra`:
+---
 
+## 🚀 Despliegue con Docker Compose
+
+Ejecutar desde el directorio `logitrack-infra`:
+
+### 1. Construir las imágenes y levantar todo el stack:
 ```bash
-cd logitrack-infra
-```
-
----
-
-### Opción A: Despliegue Rápido desde Docker Hub (Sin clonar otros repos)
-
-Si solo clonaste este repositorio y querés levantar todo el ecosistema usando las imágenes oficiales publicadas en Docker Hub (`luism46/...`):
-
-```bash
-# 1. Descargar las últimas versiones de las imágenes
-docker compose pull
-
-# 2. Levantar los contenedores ignorando la compilación local
-docker compose up -d --no-build
-```
-
-> [!TIP]
-> Al usar `--no-build`, Docker Compose no buscará los directorios de código fuente en tu máquina ni requerirá Java o Maven instalado.
-
----
-
-### Opción B: Compilación Local desde Código Fuente (Modo Desarrollo)
-
-Si clonaste todos los microservicios en la misma carpeta raíz (como repositorios hermanos: `config-server`, `courier-service`, `shipment-service`, etc.) y realizaste modificaciones en el código:
-
-```bash
-# Compilar las imágenes localmente y levantar el ecosistema
 docker compose up -d --build
 ```
 
----
-
-## ✅ Verificación del Despliegue
-
-### 1. Estado de los contenedores
-Ejecuta:
+### 2. Verificar el estado de los contenedores:
 ```bash
 docker compose ps
 ```
-Deberías ver los 5 contenedores en estado `Up` y `healthy`:
-* `logitrack-configserver`
-* `logitrack-courier-service`
-* `logitrack-security-service`
-* `logitrack-shipment-service`
+Deberías ver los 8 contenedores en estado `Up` y `healthy`:
 * `logitrack-mysql`
-
-### 2. Endpoints de Salud (Actuator Health)
-
-| Microservicio | Puerto Host | Endpoint de Salud | Estado Esperado |
-| :--- | :---: | :--- | :---: |
-| **Config Server** | `8085` | [http://localhost:8085/actuator/health](http://localhost:8085/actuator/health) | `{"status":"UP"}` |
-| **Courier Service** | `8081` | [http://localhost:8081/actuator/health](http://localhost:8081/actuator/health) | `{"status":"UP"}` |
-| **Shipment Service** | `8080` | [http://localhost:8080/actuator/health](http://localhost:8080/actuator/health) | `{"status":"UP"}` |
-| **Security Service** | `8083` | [http://localhost:8083/actuator/health](http://localhost:8083/actuator/health) | `403 Forbidden` *(Protegido por Spring Security)* |
-
-### 3. Documentación Interactiva (Swagger UI)
-* **Shipment Service:** [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)
-* **Courier Service:** [http://localhost:8081/swagger-ui.html](http://localhost:8081/swagger-ui.html)
-
----
-
-## 🗄️ Conexión a la Base de Datos (DBeaver / Workbench)
-
-Las 3 bases de datos se encuentran en el mismo contenedor `logitrack-mysql`:
-
-* **Host:** `localhost`
-* **Puerto:** `3309`
-* **Usuario:** `root`
-* **Contraseña:** `root`
-* **Bases disponibles:** `shipment_db`, `courier_db`, `security_db`.
+* `logitrack-zipkin`
+* `logitrack-configserver`
+* `logitrack-eureka-server`
+* `logitrack-security-service`
+* `logitrack-courier-service`
+* `logitrack-shipment-service`
+* `logitrack-api-gateway`
 
 ---
 
@@ -158,24 +119,22 @@ Las 3 bases de datos se encuentran en el mismo contenedor `logitrack-mysql`:
 # Ver estado de los contenedores
 docker compose ps
 
-# Ver logs de un microservicio en tiempo real
-docker compose logs -f shipment-service
-docker compose logs -f courier-service
-docker compose logs -f configserver
+# Ver logs en tiempo real (ejemplo del Gateway)
+docker compose logs -f api-gateway
 
-# Reiniciar un servicio
-docker compose restart shipment-service
+# Ver logs de todo el stack
+docker compose logs -f
 
-# Detener los contenedores (conservando los datos de las bases)
+# Detener los contenedores conservando los datos
 docker compose stop
 
 # Reanudar los contenedores
 docker compose start
 
-# Apagar y eliminar los contenedores y la red
+# Apagar y eliminar los contenedores y redes
 docker compose down
 
-# Apagar y BORRAR los volúmenes (para reiniciar las bases de datos de cero)
+# Apagar y BORRAR las bases de datos para reiniciar de cero (Volúmenes limpios)
 docker compose down -v
 ```
 
@@ -184,8 +143,10 @@ docker compose down -v
 ## 👥 Repositorios de la Organización
 
 * [logitrack-infra](https://github.com/logitrack-lazyhawk/logitrack-infra) (Orquestación con Docker Compose)
+* [api-gateway](https://github.com/logitrack-lazyhawk/api-gateway) (Puerta de enlace perimetral, filtros JWT y CORS)
+* [eureka-server](https://github.com/logitrack-lazyhawk/eureka-server) (Servidor de descubrimiento dinámico)
 * [configserver-ms](https://github.com/logitrack-lazyhawk/configserver-ms) (Repositorio Git de propiedades centralizadas)
 * [config-server](https://github.com/logitrack-lazyhawk/config-server) (Microservicio Spring Cloud Config Server)
-* [shipment-service](https://github.com/logitrack-lazyhawk/shipment-service) (Microservicio de Envíos y Tarifas)
+* [shipment-service](https://github.com/logitrack-lazyhawk/shipment-service) (Microservicio de Envíos con Feign y Resiliencia)
 * [courier-service](https://github.com/logitrack-lazyhawk/courier-service) (Microservicio de Repartidores)
 * [security-service](https://github.com/logitrack-lazyhawk/security-service) (Microservicio de Autenticación y JWT)
