@@ -16,10 +16,10 @@ services:
       --innodb-buffer-pool-size=64M
       --max-connections=100
     environment:
-      MYSQL_ROOT_PASSWORD: root
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD} # <-- Cambio
       MYSQL_DATABASE: shipment_db
     ports:
-      - "3309:3306"
+      - "${MYSQL_PORT}:3306" # <-- Cambio
     volumes:
       - mysql_data:/var/lib/mysql
       - ./init-dbs.sql:/docker-entrypoint-initdb.d/init-dbs.sql:ro
@@ -30,7 +30,7 @@ services:
           - mysql-courier
           - mysql-security
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -117,9 +117,9 @@ services:
       DB_PORT: 3306
       DB_NAME: security_db
       DB_USER: root
-      DB_PASSWORD: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD} # <-- Variable
       SECURITY_DB_USER: root
-      SECURITY_DB_PASSWORD: root
+      SECURITY_DB_PASSWORD: ${MYSQL_ROOT_PASSWORD} # <-- Variable
       JPA_DDL_AUTO: update
       EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8065/eureka/
       ZIPKIN_ENDPOINT: http://zipkin-server:9411/api/v2/spans
@@ -159,7 +159,7 @@ services:
       DB_PORT: 3306
       DB_NAME: courier_db
       DB_USER: root
-      DB_PASSWORD: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD} # <-- Variable
       JPA_DDL_AUTO: update
       EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8065/eureka/
       ZIPKIN_ENDPOINT: http://zipkin-server:9411/api/v2/spans
@@ -199,7 +199,7 @@ services:
       DB_PORT: 3306
       DB_NAME: shipment_db
       DB_USER: root
-      DB_PASSWORD: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD} # <-- Variable
       COURIER_SERVICE_URL: http://courier-service:8081
       JPA_DDL_AUTO: update
       EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8065/eureka/
@@ -268,11 +268,11 @@ services:
     container_name: logitrack-keycloak
     command: start-dev
     environment:
-      KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: admin
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN} # <-- Variable
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD} # <-- Variable
       KC_DB: dev-file
     ports:
-      - "8180:8080" # Puerto 8180 en el host para no chocar con el shipment-service
+      - "${KEYCLOAK_PORT}:8080" # <-- Variable
     networks:
       - logitrack-network
 
