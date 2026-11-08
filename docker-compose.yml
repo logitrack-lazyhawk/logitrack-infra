@@ -279,15 +279,26 @@ services:
   # ----------------------------------------------------------------------------
   # 10. RABBITMQ (Mensajería Asíncrona) - F31
   # ----------------------------------------------------------------------------
+
   rabbitmq:
-    image: rabbitmq:3.13-management-alpine
+    image: rabbitmq:4.4.0-management-alpine
     container_name: logitrack-rabbitmq
+    hostname: rabbitmq
+    restart: unless-stopped
     environment:
-      RABBITMQ_DEFAULT_USER: admin
-      RABBITMQ_DEFAULT_PASS: admin
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:?Definir RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?Definir RABBITMQ_PASSWORD}
     ports:
-      - "5672:5672"
-      - "15672:15672"
+      - "127.0.0.1:5673:5672"
+      - "127.0.0.1:15673:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_running"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 40s
     networks:
       - logitrack-network
 
@@ -302,3 +313,6 @@ networks:
 volumes:
   mysql_data:
     name: logitrack-mysql-data
+
+  rabbitmq_data:
+    name: logitrack-rabbitmq-data
