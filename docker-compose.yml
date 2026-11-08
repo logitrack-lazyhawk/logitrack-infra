@@ -1,7 +1,6 @@
 ﻿# ==============================================================================
-# LOGITRACK - ORQUESTACIÃ“N DE ECOSISTEMA (Sprint 3 - DAAS)
-# OrquestaciÃ³n con Docker Compose: MySQL + Zipkin + Config Server + Eureka + Microservicios
-# Perfil unificado: dev
+# LOGITRACK - ORQUESTACIÓN DE ECOSISTEMA (Sprint 4 - DAAS)
+# MySQL + Zipkin + Config Server + Eureka + Microservicios + Keycloak + RabbitMQ
 # ==============================================================================
 
 services:
@@ -52,7 +51,7 @@ services:
           - zipkin-server
 
   # ----------------------------------------------------------------------------
-  # 3. SERVIDOR DE CONFIGURACIÃ“N CENTRALIZADA (Spring Cloud Config Server)
+  # 3. SERVIDOR DE CONFIGURACIÓN CENTRALIZADA (Spring Cloud Config Server)
   # ----------------------------------------------------------------------------
   configserver:
     build:
@@ -99,7 +98,7 @@ services:
           - eureka-server
 
   # ----------------------------------------------------------------------------
-  # 5. MICROSERVICIO DE SEGURIDAD Y AUTENTICACIÃ“N (Puerto 8083)
+  # 5. MICROSERVICIO DE SEGURIDAD Y AUTENTICACIÓN (Puerto 8083)
   # ----------------------------------------------------------------------------
   security-service:
     build:
@@ -181,7 +180,7 @@ services:
       - logitrack-network
 
   # ----------------------------------------------------------------------------
-  # 7. MICROSERVICIO DE ENVÃOS (Puerto 8080)
+  # 7. MICROSERVICIO DE ENVÍOS (Puerto 8080)
   # ----------------------------------------------------------------------------
   shipment-service:
     build:
@@ -261,8 +260,39 @@ services:
     networks:
       - logitrack-network
 
+  # ----------------------------------------------------------------------------
+  # 9. KEYCLOAK (Gestión de Identidad y Acceso) - F31
+  # ----------------------------------------------------------------------------
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0.1
+    container_name: logitrack-keycloak
+    command: start-dev
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_DB: dev-file
+    ports:
+      - "8180:8080" # Puerto 8180 en el host para no chocar con el shipment-service
+    networks:
+      - logitrack-network
+
+  # ----------------------------------------------------------------------------
+  # 10. RABBITMQ (Mensajería Asíncrona) - F31
+  # ----------------------------------------------------------------------------
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: logitrack-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - logitrack-network
+
 # ------------------------------------------------------------------------------
-# REDES Y VOLÃšMENES PERSISTENTES
+# REDES Y VOLÚMENES PERSISTENTES
 # ------------------------------------------------------------------------------
 networks:
   logitrack-network:
