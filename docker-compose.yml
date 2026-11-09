@@ -16,10 +16,10 @@ services:
       --innodb-buffer-pool-size=64M
       --max-connections=100
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD} # <-- Cambio
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: shipment_db
     ports:
-      - "${MYSQL_PORT}:3306" # <-- Cambio
+      - "${MYSQL_PORT}:3306"
     volumes:
       - mysql_data:/var/lib/mysql
       - ./init-dbs.sql:/docker-entrypoint-initdb.d/init-dbs.sql:ro
@@ -29,6 +29,7 @@ services:
           - mysql-shipment
           - mysql-courier
           - mysql-security
+          - mysql-commerce
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
       interval: 5s
@@ -117,9 +118,9 @@ services:
       DB_PORT: 3306
       DB_NAME: security_db
       DB_USER: root
-      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD} # <-- Variable
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       SECURITY_DB_USER: root
-      SECURITY_DB_PASSWORD: ${MYSQL_ROOT_PASSWORD} # <-- Variable
+      SECURITY_DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       JPA_DDL_AUTO: update
       EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8065/eureka/
       ZIPKIN_ENDPOINT: http://zipkin-server:9411/api/v2/spans
@@ -159,7 +160,7 @@ services:
       DB_PORT: 3306
       DB_NAME: courier_db
       DB_USER: root
-      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD} # <-- Variable
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       JPA_DDL_AUTO: update
       EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8065/eureka/
       ZIPKIN_ENDPOINT: http://zipkin-server:9411/api/v2/spans
@@ -199,7 +200,7 @@ services:
       DB_PORT: 3306
       DB_NAME: shipment_db
       DB_USER: root
-      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD} # <-- Variable
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       COURIER_SERVICE_URL: http://courier-service:8081
       JPA_DDL_AUTO: update
       EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8065/eureka/
@@ -225,7 +226,6 @@ services:
         condition: service_started
       rabbitmq:
         condition: service_healthy
-
     networks:
       - logitrack-network
 
@@ -275,19 +275,17 @@ services:
     container_name: logitrack-keycloak
     command: start-dev
     environment:
-      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN} # <-- Variable
-      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD} # <-- Variable
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
       KC_DB: dev-file
     ports:
-      - "${KEYCLOAK_PORT}:8080" # <-- Variable
+      - "${KEYCLOAK_PORT}:8080"
     networks:
       - logitrack-network
 
   # ----------------------------------------------------------------------------
   # 10. RABBITMQ (Mensajería Asíncrona) - F31
   # ----------------------------------------------------------------------------
-
-
   rabbitmq:
     image: rabbitmq:4.4.0-management-alpine
     container_name: logitrack-rabbitmq
@@ -310,6 +308,46 @@ services:
     networks:
       - logitrack-network
 
+  # ----------------------------------------------------------------------------
+  # 11. MICROSERVICIO DE COMERCIO (Puerto 8084) - F17
+  # ----------------------------------------------------------------------------
+  commerce-service:
+    build:
+      context: ../commerce-service
+      dockerfile: Dockerfile
+    image: luism46/commerce-service:latest
+    container_name: logitrack-commerce-service
+    restart: unless-stopped
+    ports:
+      - "8084:8084"
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      CONFIG_SERVER_URL: http://configserver:8085
+      SPRING_CONFIG_IMPORT: "optional:configserver:http://configserver:8085"
+      DB_HOST: mysql-commerce
+      DB_PORT: 3306
+      DB_NAME: commerce_db
+      DB_USER: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      JPA_DDL_AUTO: update
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8065/eureka/
+      ZIPKIN_ENDPOINT: http://zipkin-server:9411/api/v2/spans
+      MANAGEMENT_ZIPKIN_TRACING_ENDPOINT: http://zipkin-server:9411/api/v2/spans
+      MANAGEMENT_TRACING_EXPORT_ZIPKIN_ENDPOINT: http://zipkin-server:9411/api/v2/spans
+      MANAGEMENT_TRACING_SAMPLING_PROBABILITY: "1.0"
+      JAVA_OPTS: "-Xms128m -Xmx256m -XX:TieredStopAtLevel=1 -XX:+UseContainerSupport"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      configserver:
+        condition: service_started
+      eureka-server:
+        condition: service_started
+      zipkin-server:
+        condition: service_started
+    networks:
+      - logitrack-network
+
 # ------------------------------------------------------------------------------
 # REDES Y VOLÚMENES PERSISTENTES
 # ------------------------------------------------------------------------------
@@ -321,6 +359,5 @@ networks:
 volumes:
   mysql_data:
     name: logitrack-mysql-data
-
   rabbitmq_data:
     name: logitrack-rabbitmq-data
