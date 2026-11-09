@@ -168,6 +168,11 @@ services:
       MANAGEMENT_TRACING_EXPORT_ZIPKIN_ENDPOINT: http://zipkin-server:9411/api/v2/spans
       MANAGEMENT_TRACING_SAMPLING_PROBABILITY: "1.0"
       JAVA_OPTS: "-Xms128m -Xmx256m -XX:TieredStopAtLevel=1 -XX:+UseContainerSupport"
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      RABBITMQ_LISTENER_AUTO_STARTUP: "true"
     depends_on:
       mysql:
         condition: service_healthy
@@ -177,6 +182,8 @@ services:
         condition: service_started
       zipkin-server:
         condition: service_started
+      rabbitmq:
+        condition: service_healthy
     networks:
       - logitrack-network
 
@@ -213,6 +220,7 @@ services:
       RABBITMQ_PORT: 5672
       RABBITMQ_USER: ${RABBITMQ_USER}
       RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      RABBITMQ_LISTENER_AUTO_STARTUP: "true"
     depends_on:
       mysql:
         condition: service_healthy
