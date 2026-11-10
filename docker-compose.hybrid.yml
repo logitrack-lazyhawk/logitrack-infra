@@ -1,0 +1,22 @@
+# F33 - Desarrollo híbrido local / Docker
+
+services:
+  api-gateway:
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  shipment-service:
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  courier-service:
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  commerce-service:
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  prometheus:
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
