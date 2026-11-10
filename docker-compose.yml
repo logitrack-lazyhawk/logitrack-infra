@@ -276,20 +276,31 @@ services:
       - logitrack-network
 
   # ----------------------------------------------------------------------------
-  # 9. KEYCLOAK (Gestión de Identidad y Acceso) - F31
+  # 9. KEYCLOAK (Gestión de Identidad y Acceso) - F01 / F02 / F31
   # ----------------------------------------------------------------------------
   keycloak:
     image: quay.io/keycloak/keycloak:24.0.1
     container_name: logitrack-keycloak
-    command: start-dev
+    command: start-dev --import-realm
     environment:
-      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
-      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
       KC_DB: dev-file
+      KC_HEALTH_ENABLED: "true"
     ports:
-      - "${KEYCLOAK_PORT}:8080"
+      - "${KEYCLOAK_PORT:-8080}:8080"
+    volumes:
+      - ./keycloak/realm:/opt/keycloak/data/import:ro
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8080 && echo -e 'GET /realms/lazyhawk HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && cat <&3 | grep 'HTTP/1.1 200' || exit 0"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
     networks:
-      - logitrack-network
+      logitrack-network:
+        aliases:
+          - keycloak
 
   # ----------------------------------------------------------------------------
   # 10. RABBITMQ (Mensajería Asíncrona) - F31

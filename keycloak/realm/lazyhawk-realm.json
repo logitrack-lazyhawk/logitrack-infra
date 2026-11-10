@@ -1,0 +1,174 @@
+{
+  "id": "lazyhawk",
+  "realm": "lazyhawk",
+  "displayName": "LazyHawk - LogiTrack IAM",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": true,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "editUsernameAllowed": false,
+  "bruteForceProtected": true,
+  "roles": {
+    "realm": [
+      {
+        "name": "ADMIN",
+        "description": "Administrador general del ecosistema LogiTrack"
+      },
+      {
+        "name": "VENDEDOR",
+        "description": "Gestor de catálogo, precios y productos de comercio"
+      },
+      {
+        "name": "CLIENTE",
+        "description": "Comprador de comercio y emisor de envíos"
+      },
+      {
+        "name": "REPARTIDOR",
+        "description": "Repartidor operativo de envíos en ruta"
+      }
+    ]
+  },
+  "defaultRoles": [
+    "CLIENTE"
+  ],
+  "clients": [
+    {
+      "clientId": "logitrack-frontend",
+      "name": "LogiTrack Frontend SPA",
+      "description": "Cliente público SPA (React) para autenticación con OIDC y PKCE",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:3000/*##http://localhost:5173/*"
+      },
+      "redirectUris": [
+        "http://localhost:3000/*",
+        "http://localhost:5173/*",
+        "http://127.0.0.1:3000/*",
+        "http://127.0.0.1:5173/*"
+      ],
+      "webOrigins": [
+        "+"
+      ],
+      "protocolMappers": [
+        {
+          "name": "realm-roles-mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "consentRequired": false,
+          "config": {
+            "multivalued": "true",
+            "userinfo.token.claim": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "roles",
+            "jsonType.label": "String"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "logitrack-gateway",
+      "name": "LogiTrack API Gateway Resource Server",
+      "description": "Cliente bearer-only / Resource Server para el API Gateway y microservicios",
+      "enabled": true,
+      "bearerOnly": true,
+      "protocolMappers": [
+        {
+          "name": "realm-roles-mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "consentRequired": false,
+          "config": {
+            "multivalued": "true",
+            "userinfo.token.claim": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "roles",
+            "jsonType.label": "String"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "admin@logitrack.com",
+      "email": "admin@logitrack.com",
+      "firstName": "Admin",
+      "lastName": "LogiTrack",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "admin123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "ADMIN"
+      ]
+    },
+    {
+      "username": "vendedor@logitrack.com",
+      "email": "vendedor@logitrack.com",
+      "firstName": "Vendedor",
+      "lastName": "Comercio",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "vendedor123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "VENDEDOR"
+      ]
+    },
+    {
+      "username": "cliente@logitrack.com",
+      "email": "cliente@logitrack.com",
+      "firstName": "Cliente",
+      "lastName": "LogiTrack",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "cliente123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "CLIENTE"
+      ]
+    },
+    {
+      "username": "repartidor@logitrack.com",
+      "email": "repartidor@logitrack.com",
+      "firstName": "Repartidor",
+      "lastName": "LogiTrack",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "repartidor123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "REPARTIDOR"
+      ]
+    }
+  ]
+}
