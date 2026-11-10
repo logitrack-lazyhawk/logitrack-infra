@@ -76,7 +76,7 @@
             "uid": "loki"
           },
           "editorMode": "code",
-          "expr": "sum by (container) (count_over_time({container=~\".+\"} |= \"$search\" [1m]))",
+          "expr": "sum by (container) (count_over_time({container=~\"$container\"} |= \"$search\" [1m]))",
           "legendFormat": "{{container}}",
           "queryType": "range",
           "refId": "A"
@@ -140,7 +140,7 @@
   "templating": {
     "list": [
       {
-        "allValue": ".*",
+        "allValue": ".+",
         "current": {
           "selected": true,
           "text": "All",
@@ -201,6 +201,6 @@
   "timezone": "browser",
   "title": "LogiTrack — Logs Centralizados y Correlación de Trazas",
   "uid": "logitrack-logs-tracing",
-  "version": 1
+  "version": 2
 }
 
