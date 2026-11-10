@@ -1,4 +1,4 @@
-﻿# ==============================================================================
+# ==============================================================================
 # LOGITRACK - ORQUESTACIÓN DE ECOSISTEMA (Sprint 4 - DAAS)
 # MySQL + Zipkin + Config Server + Eureka + Microservicios + Keycloak + RabbitMQ
 # ==============================================================================
@@ -258,6 +258,7 @@ services:
       CONFIG_SERVER_URL: http://configserver:8085
       SPRING_CONFIG_IMPORT: "optional:configserver:http://configserver:8085"
       EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8065/eureka/
+      SECURITY_JWT_JWK_SET_URI: "http://keycloak:8080/realms/lazyhawk/protocol/openid-connect/certs"
       ZIPKIN_ENDPOINT: http://zipkin-server:9411/api/v2/spans
       MANAGEMENT_ZIPKIN_TRACING_ENDPOINT: http://zipkin-server:9411/api/v2/spans
       MANAGEMENT_TRACING_EXPORT_ZIPKIN_ENDPOINT: http://zipkin-server:9411/api/v2/spans
@@ -293,7 +294,7 @@ services:
       KC_DB: dev-file
       KC_HEALTH_ENABLED: "true"
     ports:
-      - "${KEYCLOAK_PORT:-8080}:8080"
+      - "${KEYCLOAK_PORT:-8082}:8080"
     volumes:
       - ./keycloak/realm:/opt/keycloak/data/import:ro
     healthcheck:
@@ -388,6 +389,91 @@ services:
     networks:
       - logitrack-network
 
+  # ----------------------------------------------------------------------------
+  # 12. PROMETHEUS (Recolección de Métricas) - Épica 10
+  # ----------------------------------------------------------------------------
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    container_name: logitrack-prometheus
+    restart: unless-stopped
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--storage.tsdb.retention.time=7d'
+    networks:
+      logitrack-network:
+        aliases:
+          - prometheus
+
+  # ----------------------------------------------------------------------------
+  # 13. GRAFANA LOKI (Ingesta e Indexación de Logs) - Épica 10
+  # ----------------------------------------------------------------------------
+  loki:
+    image: grafana/loki:3.2.0
+    container_name: logitrack-loki
+    restart: unless-stopped
+    user: "0:0"
+    ports:
+      - "${LOKI_PORT:-3100}:3100"
+    volumes:
+      - ./loki/loki-config.yml:/etc/loki/loki-config.yml:ro
+      - loki_data:/tmp/loki
+    command: -config.file=/etc/loki/loki-config.yml
+    networks:
+      logitrack-network:
+        aliases:
+          - loki
+
+  # ----------------------------------------------------------------------------
+  # 14. PROMTAIL (Recolector de Logs de Contenedores) - Épica 10
+  # ----------------------------------------------------------------------------
+  promtail:
+    image: grafana/promtail:3.2.0
+    container_name: logitrack-promtail
+    restart: unless-stopped
+    volumes:
+      - ./promtail/promtail-config.yml:/etc/promtail/promtail-config.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    command: -config.file=/etc/promtail/promtail-config.yml
+    depends_on:
+      - loki
+    networks:
+      - logitrack-network
+
+  # ----------------------------------------------------------------------------
+  # 15. GRAFANA (Visualización y Monitoreo Unificado) - Épica 10
+  # ----------------------------------------------------------------------------
+  grafana:
+    image: grafana/grafana:11.3.0
+    container_name: logitrack-grafana
+    restart: unless-stopped
+    ports:
+      - "${GRAFANA_PORT:-3000}:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/etc/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+      - loki
+      - zipkin-server
+    networks:
+      logitrack-network:
+        aliases:
+          - grafana
+
 # ------------------------------------------------------------------------------
 # REDES Y VOLÚMENES PERSISTENTES
 # ------------------------------------------------------------------------------
@@ -401,3 +487,9 @@ volumes:
     name: logitrack-mysql-data
   rabbitmq_data:
     name: logitrack-rabbitmq-data
+  prometheus_data:
+    name: logitrack-prometheus-data
+  loki_data:
+    name: logitrack-loki-data
+  grafana_data:
+    name: logitrack-grafana-data

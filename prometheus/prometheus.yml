@@ -1,0 +1,73 @@
+# ==============================================================================
+# LOGITRACK - CONFIGURACIÓN DE PROMETHEUS (Épica 10)
+# Recolección unificada de métricas Actuator / Micrometer
+# ==============================================================================
+
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+  scrape_timeout: 4s
+
+scrape_configs:
+  # ----------------------------------------------------------------------------
+  # 1. Prometheus Auto-Monitoreo
+  # ----------------------------------------------------------------------------
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # ----------------------------------------------------------------------------
+  # 2. Eureka Service Registry
+  # ----------------------------------------------------------------------------
+  - job_name: 'eureka-server'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['eureka-server:8065']
+        labels:
+          application: 'eureka-server'
+          environment: 'dev'
+
+  # ----------------------------------------------------------------------------
+  # 3. API Gateway Centralizado
+  # ----------------------------------------------------------------------------
+  - job_name: 'api-gateway'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['api-gateway:8066']
+        labels:
+          application: 'api-gateway'
+          environment: 'dev'
+
+  # ----------------------------------------------------------------------------
+  # 4. Shipment Service (Envíos)
+  # ----------------------------------------------------------------------------
+  - job_name: 'shipment-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['shipment-service:8080']
+        labels:
+          application: 'shipment-service'
+          environment: 'dev'
+
+  # ----------------------------------------------------------------------------
+  # 5. Courier Service (Repartidores)
+  # ----------------------------------------------------------------------------
+  - job_name: 'courier-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['courier-service:8081']
+        labels:
+          application: 'courier-service'
+          environment: 'dev'
+
+  # ----------------------------------------------------------------------------
+  # 6. Commerce Service (Comercio / Productos)
+  # ----------------------------------------------------------------------------
+  - job_name: 'commerce-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['commerce-service:8084']
+        labels:
+          application: 'commerce-service'
+          environment: 'dev'
+

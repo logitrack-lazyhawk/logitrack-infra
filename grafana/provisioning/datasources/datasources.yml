@@ -1,0 +1,49 @@
+# ==============================================================================
+# LOGITRACK - APROVISIONAMIENTO DE DATA SOURCES EN GRAFANA (Épica 10)
+# Prometheus (Métricas) + Loki (Logs con correlación) + Zipkin (Trazas)
+# ==============================================================================
+
+apiVersion: 1
+
+datasources:
+  # ----------------------------------------------------------------------------
+  # Data Source 1: Prometheus (Métricas)
+  # ----------------------------------------------------------------------------
+  - name: Prometheus
+    uid: prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false
+    jsonData:
+      timeInterval: 5s
+      httpMethod: POST
+
+  # ----------------------------------------------------------------------------
+  # Data Source 2: Zipkin (Trazabilidad Distribuida)
+  # ----------------------------------------------------------------------------
+  - name: Zipkin
+    uid: zipkin
+    type: zipkin
+    access: proxy
+    url: http://zipkin-server:9411
+    editable: false
+
+  # ----------------------------------------------------------------------------
+  # Data Source 3: Loki (Logs Centralizados con Correlación Log-to-Trace)
+  # ----------------------------------------------------------------------------
+  - name: Loki
+    uid: loki
+    type: loki
+    access: proxy
+    url: http://loki:3100
+    editable: false
+    jsonData:
+      derivedFields:
+        # Extrae traceId desde los logs y provee un enlace directo a Zipkin
+        - datasourceUid: zipkin
+          matcherRegex: "(?:traceId=|\\[[a-zA-Z0-9_-]+,)([a-f0-9]{16,32})"
+          name: TraceID
+          url: "$${__value.raw}"
+
