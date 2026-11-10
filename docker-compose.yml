@@ -128,6 +128,7 @@ services:
       MANAGEMENT_TRACING_EXPORT_ZIPKIN_ENDPOINT: http://zipkin-server:9411/api/v2/spans
       MANAGEMENT_TRACING_SAMPLING_PROBABILITY: "1.0"
       JAVA_OPTS: "-Xms128m -Xmx256m -XX:TieredStopAtLevel=1 -XX:+UseContainerSupport"
+      SECURITY_JWT_SECRET_KEY: ${SECURITY_JWT_SECRET_KEY:?Falta SECURITY_JWT_SECRET_KEY}
     depends_on:
       mysql:
         condition: service_healthy
@@ -221,6 +222,7 @@ services:
       RABBITMQ_USER: ${RABBITMQ_USER}
       RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
       RABBITMQ_LISTENER_AUTO_STARTUP: "true"
+      SECURITY_JWT_SECRET_KEY: ${SECURITY_JWT_SECRET_KEY:?Falta SECURITY_JWT_SECRET_KEY}
     depends_on:
       mysql:
         condition: service_healthy
@@ -259,6 +261,7 @@ services:
       MANAGEMENT_TRACING_EXPORT_ZIPKIN_ENDPOINT: http://zipkin-server:9411/api/v2/spans
       MANAGEMENT_TRACING_SAMPLING_PROBABILITY: "1.0"
       JAVA_OPTS: "-Xms128m -Xmx256m -XX:TieredStopAtLevel=1 -XX:+UseContainerSupport"
+      SECURITY_JWT_SECRET_KEY: ${SECURITY_JWT_SECRET_KEY:?Falta SECURITY_JWT_SECRET_KEY}
     depends_on:
       configserver:
         condition: service_started
@@ -353,6 +356,22 @@ services:
         condition: service_started
       zipkin-server:
         condition: service_started
+    networks:
+      - logitrack-network
+# ----------------------------------------------------------------------------
+# 12. FRONTEND (Vite + React) - F17
+# ----------------------------------------------------------------------------
+  logitrack-frontend:
+    build:
+      context: ../logitrack-frontend
+      dockerfile: Dockerfile
+    image: logitrack-frontend:dev
+    container_name: logitrack-frontend
+    restart: unless-stopped
+    ports:
+      - "5173:80"
+    depends_on:
+      - api-gateway
     networks:
       - logitrack-network
 
