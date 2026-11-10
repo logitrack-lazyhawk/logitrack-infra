@@ -89,7 +89,7 @@ flowchart TD
 | **Courier Service** | `logitrack-courier-service` | `8081` | Gestión de repartidores | [http://localhost:8081/actuator/health](http://localhost:8081/actuator/health) |
 | **Security Service** | `logitrack-security-service` | `8083` | Autenticación y generación de JWT | [http://localhost:8083/actuator/health](http://localhost:8083/actuator/health) |
 | **Commerce Service** | `logitrack-commerce-service` | `8084` | Microservicio de Catálogo y Comercio | [http://localhost:8084/actuator/health](http://localhost:8084/actuator/health) |
-| **Keycloak (IAM)** | `logitrack-keycloak` | `8080` | Servidor de Identidad OIDC y roles | [http://localhost:8080](http://localhost:8080) |
+| **Keycloak (IAM)** | `logitrack-keycloak` | `8082` | Servidor de Identidad OIDC y roles | [http://localhost:8082](http://localhost:8082) |
 | **RabbitMQ Management** | `logitrack-rabbitmq` | `15673` | Consola de mensajería asíncrona | [http://localhost:15673](http://localhost:15673) |
 | **Grafana** | `logitrack-grafana` | `3000` | Consola unificada de observabilidad | [http://localhost:3000](http://localhost:3000) (admin / admin) |
 | **Prometheus** | `logitrack-prometheus` | `9090` | Recolección y scraping de métricas | [http://localhost:9090](http://localhost:9090) |
