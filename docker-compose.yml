@@ -99,9 +99,11 @@ services:
           - eureka-server
 
   # ----------------------------------------------------------------------------
-  # 5. MICROSERVICIO DE SEGURIDAD Y AUTENTICACIÓN (Puerto 8083)
+  # 5. MICROSERVICIO DE SEGURIDAD Y AUTENTICACIÓN (Puerto 8083) - LEGACY / INACTIVO
   # ----------------------------------------------------------------------------
   security-service:
+    profiles:
+      - legacy
     build:
       context: ../security-service
       dockerfile: Dockerfile
@@ -265,7 +267,7 @@ services:
         condition: service_started
       eureka-server:
         condition: service_started
-      security-service:
+      keycloak:
         condition: service_started
       courier-service:
         condition: service_started
