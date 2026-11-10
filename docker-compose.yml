@@ -258,6 +258,8 @@ services:
       CONFIG_SERVER_URL: http://configserver:8085
       SPRING_CONFIG_IMPORT: "optional:configserver:http://configserver:8085"
       EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8065/eureka/
+      KEYCLOAK_URI: http://keycloak:8080
+      KEYCLOAK_URL: http://keycloak:8080
       SECURITY_JWT_JWK_SET_URI: "http://keycloak:8080/realms/lazyhawk/protocol/openid-connect/certs"
       ZIPKIN_ENDPOINT: http://zipkin-server:9411/api/v2/spans
       MANAGEMENT_ZIPKIN_TRACING_ENDPOINT: http://zipkin-server:9411/api/v2/spans
