@@ -196,6 +196,28 @@ docker compose down -v
 
 ---
 
+## Test de consumo de RabbitMQ
+
+Desde `logitrack-infra`, ejecutar:
+
+```bash
+bash scripts/test-rabbitmq-consumo.sh
+```
+
+El script levanta RabbitMQ, prepara el virtual host `courier-consumo-it`, carga
+las credenciales de `.env` y ejecuta `RabbitMqConsumoIT` en el repositorio hermano
+`courier-service` con memoria limitada. El test debe configurar
+`spring.rabbitmq.virtual-host=courier-consumo-it` en `@SpringBootTest`.
+El virtual host se conserva para futuras ejecuciones.
+
+Esto evita el error `406 PRECONDITION_FAILED` cuando la cola de desarrollo
+`courier.assignment.requests.q` fue creada sin `x-dead-letter-exchange`.
+También evita que otros servicios consuman los mensajes del test.
+
+Después de preparar el virtual host, también se puede ejecutar Maven directamente
+desde `courier-service`, exportando `RABBITMQ_USER` y `RABBITMQ_PASSWORD` con los
+valores de `.env` de infraestructura.
+
 ## 👥 Repositorios de la Organización
 
 * [logitrack-infra](https://github.com/logitrack-lazyhawk/logitrack-infra) (Orquestación con Docker Compose)

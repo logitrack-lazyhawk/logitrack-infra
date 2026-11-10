@@ -1,0 +1,42 @@
+=== F34 - Mediciones LogiTrack ===
+2026-11-10T16:25:06-03:00
+
+=== JDBC - HikariCP ===
+active       0.0
+idle         2.0
+max          5.0
+min          2.0
+pending      0.0
+connections  2.0
+
+=== HTTP - 10 solicitudes ===
+Prueba 1: HTTP 200, 0.008692s
+Prueba 2: HTTP 200, 0.007484s
+Prueba 3: HTTP 200, 0.005375s
+Prueba 4: HTTP 200, 0.005613s
+Prueba 5: HTTP 200, 0.009269s
+Prueba 6: HTTP 200, 0.008088s
+Prueba 7: HTTP 200, 0.006624s
+Prueba 8: HTTP 200, 0.006995s
+Prueba 9: HTTP 200, 0.009093s
+Prueba 10: HTTP 200, 0.009531s
+
+=== RabbitMQ - Conexiones ===
+Listing connections ...
+name	state	channels
+172.18.0.7:53516 -> 172.18.0.2:5672	running	2
+
+=== RabbitMQ - Colas ===
+Timeout: 60.0 seconds ...
+Listing queues for vhost / ...
+name	messages_ready	messages_unacknowledged	consumers	arguments
+courier.assignment.requests.q	0	0	1	[{"x-dead-letter-exchange","logitrack.assignment.dlx"},{"x-dead-letter-routing-key","courier.assignment.requests.dead"},{"x-queue-type","classic"}]
+shipment.assignment.results.q	0	0	0	[{"x-queue-type","classic"}]
+courier.assignment.requests.dlq	0	0	0	[{"x-queue-type","classic"}]
+
+=== Mediciones finalizadas ===
+=== F34 - Prueba controlada de timeout HTTP ===
+Demora del servidor: 2 segundos
+Timeout del cliente: 1 segundo
+Timeout confirmado en 1.029s
+RESULTADO: PASS
