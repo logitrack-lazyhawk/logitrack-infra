@@ -381,7 +381,7 @@ services:
     build:
       context: ../logitrack-frontend
       dockerfile: Dockerfile
-    image: logitrack-frontend:dev
+    image: luism46/logitrack-frontend:latest
     container_name: logitrack-frontend
     restart: unless-stopped
     ports:
