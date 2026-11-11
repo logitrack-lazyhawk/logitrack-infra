@@ -1,0 +1,156 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 620" width="100%" height="100%" style="background:#0f172a; font-family:'Segoe UI', system-ui, -apple-system, sans-serif;">
+  <defs>
+    <filter id="shadow-net" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.4"/>
+    </filter>
+    <linearGradient id="header-grad-net" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#10b981"/>
+      <stop offset="100%" stop-color="#38bdf8"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Encabezado -->
+  <rect x="0" y="0" width="1100" height="70" fill="#1e293b"/>
+  <rect x="0" y="68" width="1100" height="2" fill="url(#header-grad-net)"/>
+  <text x="40" y="42" font-size="22" font-weight="700" fill="#f8fafc">TOPOLOGÍA DE CONTENEDORES Y RED DOCKER — SPRINT 4</text>
+  <text x="690" y="42" font-size="14" font-weight="500" fill="#94a3b8">Red: logitrack-network (15 Contenedores)</text>
+
+  <!-- ================= GRUPO 1: EDGE & FRONTEND ================= -->
+  <g transform="translate(40, 95)">
+    <rect x="0" y="0" width="240" height="490" rx="12" fill="#1e293b" stroke="#3b82f6" stroke-width="1.5" filter="url(#shadow-net)"/>
+    <rect x="0" y="0" width="240" height="38" rx="12" fill="#1d4ed8"/>
+    <text x="15" y="25" font-size="13" font-weight="700" fill="#ffffff">🌐 EDGE &amp; FRONTEND</text>
+
+    <!-- Frontend -->
+    <rect x="15" y="55" width="210" height="95" rx="8" fill="#0f172a" stroke="#60a5fa" stroke-width="1"/>
+    <text x="25" y="78" font-size="12" font-weight="700" fill="#60a5fa">logitrack-frontend</text>
+    <text x="25" y="98" font-size="11" fill="#cbd5e1">Imagen: <tspan fill="#38bdf8">luism46/logitrack-frontend</tspan></text>
+    <text x="25" y="116" font-size="11" fill="#cbd5e1">Puerto Host: <tspan fill="#facc15" font-weight="bold">5173</tspan></text>
+    <text x="25" y="134" font-size="10" fill="#34d399">SPA Vite + React + RBAC</text>
+
+    <!-- Gateway -->
+    <rect x="15" y="165" width="210" height="110" rx="8" fill="#0f172a" stroke="#6366f1" stroke-width="1"/>
+    <text x="25" y="188" font-size="12" font-weight="700" fill="#a5b4fc">logitrack-api-gateway</text>
+    <text x="25" y="208" font-size="11" fill="#cbd5e1">Imagen: <tspan fill="#38bdf8">luism46/api-gateway</tspan></text>
+    <text x="25" y="226" font-size="11" fill="#cbd5e1">Puerto Host: <tspan fill="#facc15" font-weight="bold">8066</tspan></text>
+    <text x="25" y="244" font-size="10" fill="#cbd5e1">CORS + Routing + /api/auth/me</text>
+    <text x="25" y="260" font-size="10" fill="#34d399">Filtro de seguridad JWT</text>
+
+    <!-- Keycloak -->
+    <rect x="15" y="290" width="210" height="110" rx="8" fill="#0f172a" stroke="#0284c7" stroke-width="1"/>
+    <text x="25" y="313" font-size="12" font-weight="700" fill="#38bdf8">logitrack-keycloak</text>
+    <text x="25" y="333" font-size="11" fill="#cbd5e1">Imagen: <tspan fill="#94a3b8">quay.io/keycloak:24.0.1</tspan></text>
+    <text x="25" y="351" font-size="11" fill="#cbd5e1">Puerto Host: <tspan fill="#facc15" font-weight="bold">8082</tspan></text>
+    <text x="25" y="369" font-size="10" fill="#cbd5e1">IdP OIDC (Realm: lazyhawk)</text>
+    <text x="25" y="385" font-size="10" fill="#facc15">Firma Tokens con RS256</text>
+
+    <!-- Info Box -->
+    <rect x="15" y="415" width="210" height="60" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+    <text x="25" y="438" font-size="11" fill="#94a3b8">Entrada pública al cluster</text>
+    <text x="25" y="456" font-size="10" fill="#64748b">Cero exposición directa de microservicios</text>
+  </g>
+
+  <!-- ================= GRUPO 2: CORE MICROSERVICES ================= -->
+  <g transform="translate(300, 95)">
+    <rect x="0" y="0" width="260" height="490" rx="12" fill="#1e293b" stroke="#10b981" stroke-width="1.5" filter="url(#shadow-net)"/>
+    <rect x="0" y="0" width="260" height="38" rx="12" fill="#047857"/>
+    <text x="15" y="25" font-size="13" font-weight="700" fill="#ffffff">⚙️ CORE MICROSERVICIOS</text>
+
+    <!-- Commerce Service -->
+    <rect x="15" y="55" width="230" height="75" rx="8" fill="#0f172a" stroke="#10b981" stroke-width="1"/>
+    <text x="25" y="75" font-size="12" font-weight="700" fill="#34d399">commerce-service (:8084)</text>
+    <text x="25" y="93" font-size="10" fill="#cbd5e1">Catálogo y compras • Actuator UP</text>
+    <text x="25" y="111" font-size="10" fill="#38bdf8">luism46/commerce-service</text>
+
+    <!-- Shipment Service -->
+    <rect x="15" y="140" width="230" height="75" rx="8" fill="#0f172a" stroke="#10b981" stroke-width="1"/>
+    <text x="25" y="160" font-size="12" font-weight="700" fill="#34d399">shipment-service (:8080)</text>
+    <text x="25" y="178" font-size="10" fill="#cbd5e1">Gestión de envíos y tarifas</text>
+    <text x="25" y="196" font-size="10" fill="#38bdf8">luism46/shipment-service</text>
+
+    <!-- Courier Service -->
+    <rect x="15" y="225" width="230" height="75" rx="8" fill="#0f172a" stroke="#10b981" stroke-width="1"/>
+    <text x="25" y="245" font-size="12" font-weight="700" fill="#34d399">courier-service (:8081)</text>
+    <text x="25" y="263" font-size="10" fill="#cbd5e1">Repartidores y asignación</text>
+    <text x="25" y="281" font-size="10" fill="#38bdf8">luism46/courier-service</text>
+
+    <!-- Eureka Server -->
+    <rect x="15" y="310" width="230" height="75" rx="8" fill="#0f172a" stroke="#10b981" stroke-width="1"/>
+    <text x="25" y="330" font-size="12" font-weight="700" fill="#34d399">eureka-server (:8065)</text>
+    <text x="25" y="348" font-size="10" fill="#cbd5e1">Service Registry &amp; Discovery</text>
+    <text x="25" y="366" font-size="10" fill="#38bdf8">luism46/eureka-server</text>
+
+    <!-- Config Server -->
+    <rect x="15" y="395" width="230" height="75" rx="8" fill="#0f172a" stroke="#10b981" stroke-width="1"/>
+    <text x="25" y="415" font-size="12" font-weight="700" fill="#34d399">configserver (:8085)</text>
+    <text x="25" y="433" font-size="10" fill="#cbd5e1">Configuraciones Git centralizadas</text>
+    <text x="25" y="451" font-size="10" fill="#38bdf8">luism46/configserver</text>
+  </g>
+
+  <!-- ================= GRUPO 3: DATOS Y MENSAJERÍA ================= -->
+  <g transform="translate(580, 95)">
+    <rect x="0" y="0" width="230" height="490" rx="12" fill="#1e293b" stroke="#f59e0b" stroke-width="1.5" filter="url(#shadow-net)"/>
+    <rect x="0" y="0" width="230" height="38" rx="12" fill="#b45309"/>
+    <text x="15" y="25" font-size="13" font-weight="700" fill="#ffffff">🗄️ DATOS &amp; BROKER</text>
+
+    <!-- MySQL Unificado -->
+    <rect x="15" y="55" width="200" height="150" rx="8" fill="#0f172a" stroke="#d97706" stroke-width="1"/>
+    <text x="25" y="78" font-size="12" font-weight="700" fill="#fbbf24">logitrack-mysql</text>
+    <text x="25" y="98" font-size="11" fill="#cbd5e1">Imagen: <tspan fill="#94a3b8">mysql:8.4.0</tspan></text>
+    <text x="25" y="116" font-size="11" fill="#cbd5e1">Host Port: <tspan fill="#facc15" font-weight="bold">3309</tspan></text>
+    <text x="25" y="136" font-size="10" fill="#34d399">• shipment_db</text>
+    <text x="25" y="152" font-size="10" fill="#34d399">• courier_db</text>
+    <text x="25" y="168" font-size="10" fill="#34d399">• commerce_db</text>
+    <text x="25" y="184" font-size="10" fill="#34d399">• keycloak_db</text>
+
+    <!-- RabbitMQ -->
+    <rect x="15" y="220" width="200" height="130" rx="8" fill="#0f172a" stroke="#d97706" stroke-width="1"/>
+    <text x="25" y="243" font-size="12" font-weight="700" fill="#fbbf24">logitrack-rabbitmq</text>
+    <text x="25" y="263" font-size="11" fill="#cbd5e1">Imagen: <tspan fill="#94a3b8">rabbitmq:4.4-alpine</tspan></text>
+    <text x="25" y="281" font-size="11" fill="#cbd5e1">AMQP: <tspan fill="#facc15" font-weight="bold">5673</tspan> | UI: <tspan fill="#facc15" font-weight="bold">15673</tspan></text>
+    <text x="25" y="301" font-size="10" fill="#cbd5e1">Mensajería asíncrona</text>
+    <text x="25" y="319" font-size="10" fill="#34d399">Eventos de envíos/pedidos</text>
+
+    <!-- Zipkin -->
+    <rect x="15" y="365" width="200" height="105" rx="8" fill="#0f172a" stroke="#a855f7" stroke-width="1"/>
+    <text x="25" y="388" font-size="12" font-weight="700" fill="#c084fc">logitrack-zipkin</text>
+    <text x="25" y="408" font-size="11" fill="#cbd5e1">Imagen: <tspan fill="#94a3b8">openzipkin/zipkin</tspan></text>
+    <text x="25" y="426" font-size="11" fill="#cbd5e1">Host Port: <tspan fill="#facc15" font-weight="bold">9411</tspan></text>
+    <text x="25" y="446" font-size="10" fill="#34d399">Trazas distribuidas en memoria</text>
+  </g>
+
+  <!-- ================= GRUPO 4: STACK DE OBSERVABILIDAD ================= -->
+  <g transform="translate(830, 95)">
+    <rect x="0" y="0" width="230" height="490" rx="12" fill="#1e293b" stroke="#ec4899" stroke-width="1.5" filter="url(#shadow-net)"/>
+    <rect x="0" y="0" width="230" height="38" rx="12" fill="#be185d"/>
+    <text x="15" y="25" font-size="13" font-weight="700" fill="#ffffff">📊 OBSERVABILIDAD</text>
+
+    <!-- Grafana -->
+    <rect x="15" y="55" width="200" height="95" rx="8" fill="#0f172a" stroke="#f97316" stroke-width="1"/>
+    <text x="25" y="78" font-size="12" font-weight="700" fill="#fb923c">logitrack-grafana</text>
+    <text x="25" y="98" font-size="11" fill="#cbd5e1">Imagen: <tspan fill="#94a3b8">grafana:11.3.0</tspan></text>
+    <text x="25" y="116" font-size="11" fill="#cbd5e1">Host Port: <tspan fill="#facc15" font-weight="bold">3000</tspan></text>
+    <text x="25" y="134" font-size="10" fill="#34d399">Dashboards unificados</text>
+
+    <!-- Prometheus -->
+    <rect x="15" y="160" width="200" height="95" rx="8" fill="#0f172a" stroke="#eab308" stroke-width="1"/>
+    <text x="25" y="183" font-size="12" font-weight="700" fill="#facc15">logitrack-prometheus</text>
+    <text x="25" y="203" font-size="11" fill="#cbd5e1">Imagen: <tspan fill="#94a3b8">prometheus:v2.54.1</tspan></text>
+    <text x="25" y="221" font-size="11" fill="#cbd5e1">Host Port: <tspan fill="#facc15" font-weight="bold">9090</tspan></text>
+    <text x="25" y="239" font-size="10" fill="#34d399">TSDB Métricas (Pull)</text>
+
+    <!-- Loki -->
+    <rect x="15" y="265" width="200" height="95" rx="8" fill="#0f172a" stroke="#38bdf8" stroke-width="1"/>
+    <text x="25" y="288" font-size="12" font-weight="700" fill="#38bdf8">logitrack-loki</text>
+    <text x="25" y="308" font-size="11" fill="#cbd5e1">Imagen: <tspan fill="#94a3b8">loki:3.2.0</tspan></text>
+    <text x="25" y="326" font-size="11" fill="#cbd5e1">Host Port: <tspan fill="#facc15" font-weight="bold">3100</tspan></text>
+    <text x="25" y="344" font-size="10" fill="#34d399">Agregador de Logs</text>
+
+    <!-- Promtail -->
+    <rect x="15" y="370" width="200" height="95" rx="8" fill="#0f172a" stroke="#38bdf8" stroke-width="1"/>
+    <text x="25" y="393" font-size="12" font-weight="700" fill="#38bdf8">logitrack-promtail</text>
+    <text x="25" y="413" font-size="11" fill="#cbd5e1">Imagen: <tspan fill="#94a3b8">promtail:3.2.0</tspan></text>
+    <text x="25" y="431" font-size="11" fill="#cbd5e1">Docker daemon tailer</text>
+    <text x="25" y="449" font-size="10" fill="#34d399">Envío continuo a Loki</text>
+  </g>
+</svg>
