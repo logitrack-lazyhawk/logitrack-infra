@@ -1,0 +1,138 @@
+
+name: F42 - Kubernetes Smoke Test
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "k8s/**"
+      - ".github/workflows/f42-k8s.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  kubernetes-smoke:
+    name: Probar LogiTrack en Kubernetes
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+
+      - name: Instalar kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: latest
+
+      - name: Instalar Kind
+        run: |
+          curl -fsSLo kind \
+            https://kind.sigs.k8s.io/dl/v0.33.0/kind-linux-amd64
+          chmod +x kind
+          sudo mv kind /usr/local/bin/kind
+          kind version
+
+      - name: Crear cluster Kubernetes
+        run: |
+          kind create cluster --name f42 --wait 120s
+          kubectl get nodes
+
+      - name: Crear namespace y credenciales temporales
+        run: |
+          kubectl create namespace logitrack-f42
+
+          MYSQL_PASS="$(openssl rand -hex 16)"
+          RABBIT_PASS="$(openssl rand -hex 16)"
+
+          kubectl -n logitrack-f42 create secret generic f42-secrets \
+            --from-literal=mysql-password="$MYSQL_PASS" \
+            --from-literal=rabbit-password="$RABBIT_PASS"
+
+      - name: Desplegar LogiTrack
+        run: |
+          kubectl -n logitrack-f42 apply -f k8s/f42-smoke.yaml
+          kubectl -n logitrack-f42 get deployments
+          kubectl -n logitrack-f42 get services
+
+      - name: Esperar servicios
+        run: |
+          kubectl -n logitrack-f42 wait \
+            --for=condition=available \
+            deployment \
+            --all \
+            --timeout=540s
+
+          kubectl -n logitrack-f42 get pods -o wide
+
+      - name: Probar respuestas HTTP
+        run: |
+          kubectl -n logitrack-f42 run f42-http \
+            --image=curlimages/curl:8.12.1 \
+            --restart=Never \
+            --command -- sh -c '
+              set -eu
+
+              for servicio in \
+                "api-gateway:8066" \
+                "courier-service:8081" \
+                "shipment-service:8080"
+              do
+                echo "Probando $servicio"
+
+                respuesta=$(curl -fsS \
+                  --connect-timeout 5 \
+                  --max-time 15 \
+                  "http://$servicio/actuator/health")
+
+                echo "$respuesta"
+                echo "$respuesta" | grep -q "\"status\":\"UP\""
+              done
+
+              echo "F42 OK: Gateway y servicios responden"
+            '
+
+          if ! kubectl -n logitrack-f42 wait \
+            --for=jsonpath='{.status.phase}'=Succeeded \
+            pod/f42-http --timeout=180s; then
+
+            kubectl -n logitrack-f42 logs f42-http || true
+            exit 1
+          fi
+
+          kubectl -n logitrack-f42 logs f42-http
+
+      - name: Guardar evidencia
+        if: always()
+        run: |
+          mkdir -p evidencia
+
+          kubectl -n logitrack-f42 get all -o wide \
+            > evidencia/recursos.txt 2>&1 || true
+
+          kubectl -n logitrack-f42 describe pods \
+            > evidencia/diagnostico.txt 2>&1 || true
+
+          kubectl -n logitrack-f42 logs f42-http \
+            > evidencia/prueba-http.txt 2>&1 || true
+
+          for servicio in \
+            api-gateway \
+            courier-service \
+            shipment-service \
+            configserver \
+            eureka-server
+          do
+            kubectl -n logitrack-f42 logs \
+              "deployment/$servicio" --tail=100 \
+              > "evidencia/$servicio.log" 2>&1 || true
+          done
+
+      - name: Publicar evidencia
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: F42-evidencia-kubernetes
+          path: evidencia/
+          retention-days: 7
