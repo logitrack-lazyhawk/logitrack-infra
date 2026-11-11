@@ -392,6 +392,23 @@ services:
       - logitrack-network
 
   # ----------------------------------------------------------------------------
+  # 12.1 PORTAL CLIENTE (Microfrontend Vite + React) - F29
+  # ----------------------------------------------------------------------------
+  logitrack-portal-cliente:
+    build:
+      context: ../logitrack-portal-cliente
+      dockerfile: Dockerfile
+    image: logitrack-portal-cliente:dev
+    container_name: logitrack-portal-cliente
+    restart: unless-stopped
+    ports:
+      - "5174:80"
+    depends_on:
+      - api-gateway
+    networks:
+      - logitrack-network
+
+  # ----------------------------------------------------------------------------
   # 12. PROMETHEUS (Recolección de Métricas) - Épica 10
   # ----------------------------------------------------------------------------
   prometheus:
